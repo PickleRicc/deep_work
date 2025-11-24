@@ -70,8 +70,51 @@ async function buildContext(userId: string, supabase: any) {
         .eq('user_id', userId)
         .eq('status', 'backlog')
         .not('queue_position', 'is', null)
-        .order('queue_position', { ascending: true })
+        .order('queue_position', { ascending: true})
         .limit(5)
+
+    // Get future time blocks (next 7 days)
+    const sevenDaysFromNow = new Date()
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0]
+
+    const { data: futureBlocks } = await supabase
+        .from('time_blocks')
+        .select('*')
+        .eq('user_id', userId)
+        .gt('date', today)
+        .lte('date', sevenDaysStr)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+
+    // Get recent notes (last 30 days) with tags
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+
+    const { data: recentNotes } = await supabase
+        .from('notes')
+        .select(`
+            *,
+            note_tags (*)
+        `)
+        .eq('user_id', userId)
+        .gte('created_at', thirtyDaysAgoStr)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+    // Get behaviors with recent check-ins
+    const { data: behaviors } = await supabase
+        .from('behaviors')
+        .select('*')
+        .eq('user_id', userId)
+
+    const { data: recentCheckins } = await supabase
+        .from('behavior_checkins')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', thirtyDaysAgoStr)
+        .order('date', { ascending: false })
 
     return {
         today,
@@ -79,14 +122,18 @@ async function buildContext(userId: string, supabase: any) {
         quarterlyPlan,
         weeklyPlan,
         timeBlocks: timeBlocks || [],
+        futureBlocks: futureBlocks || [],
         activeTasks: activeTasks || [],
         queuedTasks: queuedTasks || [],
+        recentNotes: recentNotes || [],
+        behaviors: behaviors || [],
+        recentCheckins: recentCheckins || [],
     }
 }
 
 // Helper: Format context into system prompt
 function formatSystemPrompt(context: any) {
-    const { today, currentTime, quarterlyPlan, weeklyPlan, timeBlocks, activeTasks, queuedTasks } = context
+    const { today, currentTime, quarterlyPlan, weeklyPlan, timeBlocks, futureBlocks, activeTasks, queuedTasks, recentNotes, behaviors, recentCheckins } = context
 
     const displayDate = new Date(today).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -146,13 +193,71 @@ QUARTERLY OBJECTIVES:
         prompt += 'None\n'
     }
 
+    // Future schedule
+    prompt += `\nUPCOMING SCHEDULE (Next 7 Days):\n`
+    if (futureBlocks.length > 0) {
+        let currentDate = ''
+        futureBlocks.forEach((block: any) => {
+            if (block.date !== currentDate) {
+                currentDate = block.date
+                const dateObj = new Date(block.date + 'T12:00:00')
+                const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                prompt += `\n${dateStr}:\n`
+            }
+            const title = block.task_title ? ` - ${block.task_title}` : ''
+            prompt += `  ${block.start_time}-${block.end_time}: ${block.block_type}${title}\n`
+        })
+    } else {
+        prompt += 'No future blocks scheduled\n'
+    }
+
+    // Recent notes
+    prompt += `\nRECENT NOTES (Last 30 Days - ${recentNotes.length}):\n`
+    if (recentNotes.length > 0) {
+        recentNotes.slice(0, 10).forEach((note: any, i: number) => {
+            const tags = note.note_tags?.map((t: any) => t.tag_value).join(', ') || 'no tags'
+            const source = note.source_name ? ` from ${note.source_name}` : ''
+            prompt += `${i + 1}. "${note.title}"${source} [${tags}]\n`
+            prompt += `   ${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}\n`
+        })
+    } else {
+        prompt += 'No notes yet\n'
+    }
+
+    // Behaviors
+    const rewardingBehaviors = behaviors.filter((b: any) => b.is_rewarding)
+    const nonRewardingBehaviors = behaviors.filter((b: any) => !b.is_rewarding)
+
+    prompt += `\nBEHAVIOR TRACKING:\n`
+    prompt += `Rewarding Behaviors (${rewardingBehaviors.length}):\n`
+    if (rewardingBehaviors.length > 0) {
+        rewardingBehaviors.slice(0, 5).forEach((b: any) => {
+            const checkins = recentCheckins.filter((c: any) => c.behavior_id === b.id && c.completed)
+            prompt += `- ${b.behavior_name} (${b.frequency}) - ${checkins.length} check-ins in last 30 days\n`
+        })
+    } else {
+        prompt += '- None tracked\n'
+    }
+
+    prompt += `Non-Rewarding Behaviors (${nonRewardingBehaviors.length}):\n`
+    if (nonRewardingBehaviors.length > 0) {
+        nonRewardingBehaviors.slice(0, 5).forEach((b: any) => {
+            const checkins = recentCheckins.filter((c: any) => c.behavior_id === b.id)
+            prompt += `- ${b.behavior_name} (${b.frequency}) - ${checkins.length} occurrences in last 30 days\n`
+        })
+    } else {
+        prompt += '- None tracked\n'
+    }
+
     prompt += `
 RULES:
 1. Maximum 3 active tasks - enforce strictly
 2. Time blocks cannot overlap
 3. Reference quarterly goals when planning
 4. Be concise and direct
-5. Confirm actions taken`
+5. Confirm actions taken
+
+You have access to Eric's complete schedule (past and future), all notes, and behavior patterns.`
 
     return prompt
 }
@@ -179,7 +284,7 @@ const tools: Anthropic.Tool[] = [
                 },
                 block_type: {
                     type: 'string',
-                    enum: ['deep_work', 'shallow_work', 'break', 'personal'],
+                    enum: ['deep_work', 'shallow_work', 'break', 'personal', 'meeting'],
                     description: 'Type of time block',
                 },
                 task_title: {
@@ -302,7 +407,18 @@ async function executeToolCall(
 
 async function createTimeBlock(input: ToolInput, userId: string, supabase: any): Promise<string> {
     const date = input.date || new Date().toISOString().split('T')[0]
-    const { start_time, end_time, block_type, task_title } = input
+    let { start_time, end_time, block_type, task_title } = input
+
+    // Normalize time format to HH:MM:SS for consistent comparison
+    const normalizeTime = (time: string): string => {
+        if (time.length === 5) {
+            return `${time}:00`
+        }
+        return time
+    }
+
+    start_time = normalizeTime(start_time)
+    end_time = normalizeTime(end_time)
 
     // Check for overlaps
     const { data: existingBlocks } = await supabase
@@ -313,12 +429,17 @@ async function createTimeBlock(input: ToolInput, userId: string, supabase: any):
 
     if (existingBlocks && existingBlocks.length > 0) {
         for (const block of existingBlocks) {
+            // Normalize existing block times too
+            const blockStart = normalizeTime(block.start_time)
+            const blockEnd = normalizeTime(block.end_time)
+            
+            // Check for actual overlap (adjacent blocks are OK)
             if (
-                (start_time >= block.start_time && start_time < block.end_time) ||
-                (end_time > block.start_time && end_time <= block.end_time) ||
-                (start_time <= block.start_time && end_time >= block.end_time)
+                (start_time >= blockStart && start_time < blockEnd) ||
+                (end_time > blockStart && end_time <= blockEnd) ||
+                (start_time <= blockStart && end_time >= blockEnd)
             ) {
-                return `Error: Time block overlaps with existing block ${block.start_time}-${block.end_time}`
+                return `Error: Time block overlaps with existing block ${block.start_time.slice(0, 5)}-${block.end_time.slice(0, 5)} (${block.task_title || block.block_type})`
             }
         }
     }
@@ -335,7 +456,7 @@ async function createTimeBlock(input: ToolInput, userId: string, supabase: any):
 
     if (error) throw error
 
-    return `Created ${block_type} block from ${start_time} to ${end_time}${task_title ? ` for "${task_title}"` : ''}`
+    return `Created ${block_type} block from ${start_time.slice(0, 5)} to ${end_time.slice(0, 5)}${task_title ? ` for "${task_title}"` : ''}`
 }
 
 async function addTask(input: ToolInput, userId: string, supabase: any): Promise<string> {

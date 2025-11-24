@@ -1,6 +1,6 @@
 'use client'
 
-import { TimeBlock } from '@/lib/types/database'
+import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -21,15 +21,18 @@ import {
     Calendar,
     Users,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    ListTodo
 } from 'lucide-react'
 
 interface BlockScheduleProps {
     blocks: TimeBlock[]
     selectedDate: string
+    activeTasks: Task[]
+    workHours: UserWorkHours[]
 }
 
-export default function BlockSchedule({ blocks, selectedDate }: BlockScheduleProps) {
+export default function BlockSchedule({ blocks, selectedDate, activeTasks, workHours }: BlockScheduleProps) {
     const router = useRouter()
     const supabase = createClient()
     const [completingBlockId, setCompletingBlockId] = useState<string | null>(null)
@@ -60,6 +63,48 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
     const [endTime, setEndTime] = useState('10:00')
     const [blockType, setBlockType] = useState<TimeBlock['block_type']>('deep_work')
     const [taskTitle, setTaskTitle] = useState('')
+    const [blockDate, setBlockDate] = useState(selectedDate)
+    const [taskId, setTaskId] = useState<string>('')
+
+    // Calculate visible hours based on work hours for the selected date
+    const getVisibleHours = () => {
+        const date = new Date(selectedDate + 'T12:00:00')
+        const dayOfWeek = date.getDay()
+        
+        // Find work hours for this day
+        const dayWorkHours = workHours.find(wh => wh.day_of_week === dayOfWeek)
+        
+        if (!dayWorkHours || !dayWorkHours.is_enabled) {
+            // No work hours set, default to 9-5
+            return { start: 7, end: 19 } // 7am-7pm (9-5 work + 2hr buffer)
+        }
+        
+        // Parse work hours
+        const startHour = parseInt(dayWorkHours.start_time.split(':')[0])
+        const endHour = parseInt(dayWorkHours.end_time.split(':')[0])
+        
+        // Add 2-hour buffer on each side
+        return {
+            start: Math.max(0, startHour - 2),
+            end: Math.min(24, endHour + 2)
+        }
+    }
+
+    // Generate 30-minute time slots
+    const generateTimeSlots = () => {
+        const { start, end } = getVisibleHours()
+        const slots = []
+        
+        for (let hour = start; hour < end; hour++) {
+            slots.push(`${hour.toString().padStart(2, '0')}:00`)
+            slots.push(`${hour.toString().padStart(2, '0')}:30`)
+        }
+        
+        return slots
+    }
+
+    const timeSlots = generateTimeSlots()
+    const visibleHours = getVisibleHours()
 
     const handleMarkComplete = async (blockId: string) => {
         setCompletingBlockId(blockId)
@@ -92,6 +137,8 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
         setEndTime('10:00')
         setBlockType('deep_work')
         setTaskTitle('')
+        setBlockDate(selectedDate)
+        setTaskId('')
         setIsModalOpen(true)
     }
 
@@ -101,6 +148,8 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
         setEndTime(block.end_time.slice(0, 5))
         setBlockType(block.block_type)
         setTaskTitle(block.task_title || '')
+        setBlockDate(block.date)
+        setTaskId(block.task_id || '')
         setIsModalOpen(true)
     }
 
@@ -114,7 +163,8 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
             end_time: endTime,
             block_type: blockType,
             task_title: taskTitle,
-            date: selectedDate,
+            date: blockDate,
+            task_id: taskId || null,
         }
 
         if (editingBlock) {
@@ -150,14 +200,15 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
     }
 
     // Helper to get icon based on block type
-    const getBlockIcon = (type: string) => {
+    const getBlockIcon = (type: string, small = false) => {
+        const iconSize = small ? 14 : 18
         switch (type) {
-            case 'deep_work': return <Briefcase size={18} />
-            case 'shallow_work': return <MoreHorizontal size={18} />
-            case 'break': return <Coffee size={18} />
-            case 'personal': return <User size={18} />
-            case 'meeting': return <Users size={18} />
-            default: return <Clock size={18} />
+            case 'deep_work': return <Briefcase size={iconSize} />
+            case 'shallow_work': return <MoreHorizontal size={iconSize} />
+            case 'break': return <Coffee size={iconSize} />
+            case 'personal': return <User size={iconSize} />
+            case 'meeting': return <Users size={iconSize} />
+            default: return <Clock size={iconSize} />
         }
     }
 
@@ -204,36 +255,50 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                 
                 <div className="flex items-center gap-3">
                     {/* Date Navigation */}
-                    <div className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800 rounded-xl p-1">
-                        <button
-                            onClick={() => navigateDate(-1)}
-                            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800 rounded-xl p-1">
+                            <button
+                                onClick={() => navigateDate(-1)}
+                                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={handleDateChange}
+                                className="bg-transparent border-none text-white text-sm font-medium px-2 focus:outline-none cursor-pointer"
+                            />
+                            
+                            <button
+                                onClick={() => navigateDate(1)}
+                                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
                         
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={handleDateChange}
-                            className="bg-transparent border-none text-white text-sm font-medium px-2 focus:outline-none cursor-pointer"
-                        />
-                        
-                        <button
-                            onClick={() => navigateDate(1)}
-                            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
+                        {isToday && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-blue-500/30"
+                            >
+                                TODAY
+                            </motion.div>
+                        )}
                     </div>
 
                     {!isToday && (
-                        <button
+                        <motion.button
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
                             onClick={goToToday}
                             className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors"
                         >
                             Today
-                        </button>
+                        </motion.button>
                     )}
 
                     <button
@@ -276,7 +341,278 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                 </motion.div>
             )}
 
-            <div className="space-y-6">
+            {/* VISUAL TIMETABLE */}
+            <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="relative">
+                    {/* Time Grid */}
+                    {timeSlots.map((slot, index) => {
+                        const hour = parseInt(slot.split(':')[0])
+                        const isWorkHour = hour >= visibleHours.start + 2 && hour < visibleHours.end - 2
+                        const isHourMark = slot.endsWith(':00')
+                        
+                        return (
+                            <div
+                                key={slot}
+                                className={`flex border-b transition-colors ${
+                                    isHourMark ? 'border-zinc-700' : 'border-zinc-800/50'
+                                } ${
+                                    isWorkHour ? 'bg-blue-500/5' : 'bg-transparent'
+                                }`}
+                                style={{ height: '60px' }}
+                            >
+                                {/* Time Label */}
+                                <div className={`w-20 flex-shrink-0 p-3 text-sm font-mono border-r border-zinc-800 ${
+                                    isHourMark ? 'text-gray-400 font-semibold' : 'text-gray-600'
+                                }`}>
+                                    {isHourMark ? (
+                                        <span>{slot}</span>
+                                    ) : (
+                                        <span className="text-xs">{slot}</span>
+                                    )}
+                                </div>
+                                
+                                {/* Time Slot Area */}
+                                <div className="flex-1 relative">
+                                    {isWorkHour && isHourMark && (
+                                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[10px] font-semibold text-blue-400">
+                                            WORK HOURS
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                    
+                    {/* Overlaid Time Blocks */}
+                    {blocks.map((block) => {
+                        const startMinutes = parseInt(block.start_time.split(':')[0]) * 60 + parseInt(block.start_time.split(':')[1])
+                        const endMinutes = parseInt(block.end_time.split(':')[0]) * 60 + parseInt(block.end_time.split(':')[1])
+                        const startHourInView = visibleHours.start * 60
+                        const topPosition = ((startMinutes - startHourInView) / 30) * 60
+                        const height = ((endMinutes - startMinutes) / 30) * 60
+                        const durationMinutes = endMinutes - startMinutes
+                        
+                        const isCurrent = currentBlock?.id === block.id
+                        const isShortBlock = durationMinutes <= 60 // 1 hour or less
+                        
+                        // Get block type colors
+                        const getBlockTypeStyle = (type: string, completed: boolean, current: boolean) => {
+                            if (completed) {
+                                return 'bg-zinc-900/50 border-zinc-700/50 opacity-60'
+                            }
+                            if (current) {
+                                return 'bg-gradient-to-br from-blue-700/80 to-blue-800/80 border-blue-600/40 shadow-lg shadow-blue-900/20'
+                            }
+                            
+                            switch (type) {
+                                case 'deep_work':
+                                    return 'bg-gradient-to-br from-purple-700/80 to-purple-800/80 border-purple-600/40 hover:border-purple-500/60'
+                                case 'shallow_work':
+                                    return 'bg-gradient-to-br from-blue-700/80 to-blue-800/80 border-blue-600/40 hover:border-blue-500/60'
+                                case 'meeting':
+                                    return 'bg-gradient-to-br from-orange-700/80 to-orange-800/80 border-orange-600/40 hover:border-orange-500/60'
+                                case 'break':
+                                    return 'bg-gradient-to-br from-green-700/80 to-green-800/80 border-green-600/40 hover:border-green-500/60'
+                                case 'personal':
+                                    return 'bg-gradient-to-br from-pink-700/80 to-pink-800/80 border-pink-600/40 hover:border-pink-500/60'
+                                default:
+                                    return 'bg-gradient-to-br from-zinc-700/90 to-zinc-800/90 border-zinc-600/50 hover:border-zinc-500'
+                            }
+                        }
+                        
+                        return (
+                            <motion.div
+                                key={block.id}
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                whileHover={{ scale: 1.01 }}
+                                className={`absolute left-20 right-0 mx-2 rounded-xl border-2 backdrop-blur-sm cursor-pointer group transition-all overflow-hidden ${
+                                    getBlockTypeStyle(block.block_type, block.completed, isCurrent)
+                                }`}
+                                style={{
+                                    top: `${topPosition}px`,
+                                    height: `${height}px`,
+                                    zIndex: isCurrent ? 20 : 10
+                                }}
+                                onClick={() => openEditModal(block)}
+                            >
+                                {/* Background Pattern */}
+                                <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
+                                
+                                {isCurrent && (
+                                    <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                                        NOW
+                                    </div>
+                                )}
+                                
+                                {block.completed && !isShortBlock && (
+                                    <div className="absolute top-2 right-2 bg-zinc-800 text-green-400 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <CheckCircle2 size={10} />
+                                        DONE
+                                    </div>
+                                )}
+                                
+                                {isShortBlock ? (
+                                    // Compact layout for short blocks (1 hour or less)
+                                    <div className="relative h-full px-3 py-2 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                                                {getBlockIcon(block.block_type, true)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`font-semibold text-xs leading-tight truncate ${
+                                                    block.completed 
+                                                        ? 'line-through text-gray-400' 
+                                                        : 'text-white'
+                                                }`}>
+                                                    {block.task_title}
+                                                </div>
+                                                <div className="text-[10px] text-white/60 font-mono">
+                                                    {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Compact Action Buttons */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 flex-shrink-0">
+                                            {!block.completed && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleMarkComplete(block.id)
+                                                    }}
+                                                    className="w-5 h-5 rounded-full bg-green-500/40 hover:bg-green-500/60 flex items-center justify-center transition-all"
+                                                    title="Mark Complete"
+                                                >
+                                                    <CheckCircle2 size={10} className="text-green-200" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    openEditModal(block)
+                                                }}
+                                                className="w-5 h-5 rounded-full bg-blue-500/40 hover:bg-blue-500/60 flex items-center justify-center transition-all"
+                                                title="Edit"
+                                            >
+                                                <Pencil size={10} className="text-blue-200" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleDelete(block.id)
+                                                }}
+                                                className="w-5 h-5 rounded-full bg-red-500/40 hover:bg-red-500/60 flex items-center justify-center transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={10} className="text-red-200" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Regular layout for longer blocks
+                                    <div className="relative h-full p-4 flex flex-col justify-between">
+                                        {/* Header */}
+                                        <div className="flex items-start gap-3">
+                                            <div className={`p-2 rounded-lg ${
+                                                isCurrent 
+                                                    ? 'bg-white/20' 
+                                                    : 'bg-black/20'
+                                            } flex-shrink-0`}>
+                                                {getBlockIcon(block.block_type)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`font-bold text-base leading-tight mb-1 ${
+                                                    block.completed 
+                                                        ? 'line-through text-gray-400' 
+                                                        : 'text-white'
+                                                }`}>
+                                                    {block.task_title}
+                                                </div>
+                                                {block.task_id && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-white/70 bg-black/20 rounded-md px-2 py-1 w-fit backdrop-blur-sm">
+                                                        <ListTodo size={12} />
+                                                        <span className="truncate max-w-[200px]">
+                                                            {activeTasks.find(t => t.id === block.task_id)?.title}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Footer */}
+                                        <div className="flex items-end justify-between gap-2">
+                                            <div className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-md ${
+                                                isCurrent 
+                                                    ? 'bg-white/20 text-white backdrop-blur-sm' 
+                                                    : 'bg-black/20 text-white/80 backdrop-blur-sm'
+                                            }`}>
+                                                {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                            </div>
+                                            
+                                            {/* Action Buttons */}
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
+                                                {!block.completed && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleMarkComplete(block.id)
+                                                        }}
+                                                        className="p-2 bg-green-500/20 hover:bg-green-500/30 backdrop-blur-sm rounded-lg text-green-300 hover:text-green-200 transition-all border border-green-500/30"
+                                                        title="Mark Complete"
+                                                    >
+                                                        <CheckCircle2 size={16} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        openEditModal(block)
+                                                    }}
+                                                    className="p-2 bg-blue-500/20 hover:bg-blue-500/30 backdrop-blur-sm rounded-lg text-blue-300 hover:text-blue-200 transition-all border border-blue-500/30"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleDelete(block.id)
+                                                    }}
+                                                    className="p-2 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-sm rounded-lg text-red-300 hover:text-red-200 transition-all border border-red-500/30"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )
+                    })}
+                    
+                    {/* Current Time Indicator - Only show if viewing today */}
+                    {isToday && currentTime && (
+                        <div
+                            className="absolute left-0 right-0 pointer-events-none z-30"
+                            style={{
+                                top: `${((parseInt(currentTime.split(':')[0]) * 60 + parseInt(currentTime.split(':')[1])) - (visibleHours.start * 60)) / 30 * 60}px`
+                            }}
+                        >
+                            <div className="flex items-center">
+                                <div className="w-20 flex items-center justify-end pr-2">
+                                    <div className="w-3 h-3 bg-red-500 rounded-full shadow-lg shadow-red-500/50" />
+                                </div>
+                                <div className="flex-1 h-0.5 bg-red-500 shadow-lg shadow-red-500/50" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="space-y-6 hidden">
                 {/* CURRENT BLOCK - Only show if viewing today */}
                 <AnimatePresence mode="wait">
                     {currentBlock && (
@@ -287,10 +623,6 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="relative overflow-hidden rounded-2xl border border-blue-500/50 bg-gradient-to-br from-blue-900/20 to-black p-6 shadow-2xl shadow-blue-900/10"
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Play size={120} />
-                            </div>
-
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg shadow-blue-500/20">
@@ -311,10 +643,16 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                                     <div className="p-3 bg-blue-500/20 rounded-xl text-blue-300 border border-blue-500/20">
                                         {getBlockIcon(currentBlock.block_type)}
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <h3 className="text-2xl font-bold text-white mb-1">
                                             {currentBlock.task_title}
                                         </h3>
+                                        {currentBlock.task_id && (
+                                            <div className="flex items-center gap-1.5 mb-2 text-blue-300/70 text-sm">
+                                                <ListTodo size={14} />
+                                                <span>{activeTasks.find(t => t.id === currentBlock.task_id)?.title || 'Linked Project'}</span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center gap-2 text-blue-200/70 font-medium">
                                             <Clock size={16} />
                                             {currentBlock.start_time.slice(0, 5)} - {currentBlock.end_time.slice(0, 5)}
@@ -364,9 +702,17 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                                         <div className={`p-2 rounded-lg bg-black/20 border border-white/5`}>
                                             {getBlockIcon(block.block_type)}
                                         </div>
-                                        <span className="font-medium truncate">
-                                            {block.task_title}
-                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="font-medium truncate block">
+                                                {block.task_title}
+                                            </span>
+                                            {block.task_id && (
+                                                <span className="text-xs text-blue-400/70 flex items-center gap-1 mt-0.5">
+                                                    <ListTodo size={12} />
+                                                    {activeTasks.find(t => t.id === block.task_id)?.title || 'Linked Project'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -458,6 +804,16 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                             </div>
 
                             <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">DATE</label>
+                                    <input
+                                        type="date"
+                                        value={blockDate}
+                                        onChange={(e) => setBlockDate(e.target.value)}
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 mb-1.5">START</label>
@@ -491,6 +847,22 @@ export default function BlockSchedule({ blocks, selectedDate }: BlockSchedulePro
                                         <option value="meeting">Meeting</option>
                                         <option value="personal">Personal</option>
                                         <option value="break">Break</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">LINKED PROJECT (OPTIONAL)</label>
+                                    <select
+                                        value={taskId}
+                                        onChange={(e) => setTaskId(e.target.value)}
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none"
+                                    >
+                                        <option value="">No linked project</option>
+                                        {activeTasks.map((task) => (
+                                            <option key={task.id} value={task.id}>
+                                                {task.title}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 

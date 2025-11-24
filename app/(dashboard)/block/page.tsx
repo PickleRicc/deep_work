@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { TimeBlock, Task } from '@/lib/types/database'
+import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
 import ActiveProjects from './active-projects'
 import BlockSchedule from './block-schedule'
+import WorkHoursConfig from './work-hours-config'
 
 export default async function BlockPage({
     searchParams,
@@ -46,11 +47,22 @@ export default async function BlockPage({
         .limit(3)
         .returns<Task[]>()
 
+    // Fetch user work hours
+    const { data: workHours } = await supabase
+        .from('user_work_hours')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('day_of_week')
+        .returns<UserWorkHours[]>()
+
     return (
         <div className="space-y-8 px-4 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto">
-            <div>
-                <h1 className="text-4xl font-bold text-white">Time Blocking</h1>
-                <p className="text-gray-400 mt-1">{displayDate}</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-4xl font-bold text-white">Time Blocking</h1>
+                    <p className="text-gray-400 mt-1">{displayDate}</p>
+                </div>
+                <WorkHoursConfig userId={user.id} />
             </div>
 
             <ActiveProjects tasks={activeTasks || []} />
@@ -58,6 +70,8 @@ export default async function BlockPage({
             <BlockSchedule 
                 blocks={timeBlocks || []} 
                 selectedDate={selectedDate}
+                activeTasks={activeTasks || []}
+                workHours={workHours || []}
             />
         </div>
     )
