@@ -1,6 +1,6 @@
 'use client'
 
-import { Task } from '@/lib/types/database'
+import { Task, Project } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -16,16 +16,18 @@ import {
     Pencil,
     X,
     Calendar,
-    AlignLeft
+    AlignLeft,
+    Folder
 } from 'lucide-react'
 
 interface QueueManagerProps {
     activeTasks: Task[]
     queuedTasks: Task[]
     completedTasks: Task[]
+    projects: Project[]
 }
 
-export default function QueueManager({ activeTasks, queuedTasks, completedTasks }: QueueManagerProps) {
+export default function QueueManager({ activeTasks, queuedTasks, completedTasks, projects }: QueueManagerProps) {
     const router = useRouter()
     const supabase = createClient()
     const [isPulling, setIsPulling] = useState(false)
@@ -33,11 +35,13 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
     const [isAddingTask, setIsAddingTask] = useState(false)
     const [newTaskTitle, setNewTaskTitle] = useState('')
     const [newTaskNotes, setNewTaskNotes] = useState('')
+    const [newTaskProjectId, setNewTaskProjectId] = useState('')
 
     // Edit State
     const [editingTask, setEditingTask] = useState<Task | null>(null)
     const [editTitle, setEditTitle] = useState('')
     const [editNotes, setEditNotes] = useState('')
+    const [editProjectId, setEditProjectId] = useState('')
 
     const handleCompleteTask = async (taskId: string) => {
         setCompletingTaskId(taskId)
@@ -74,6 +78,35 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
         setIsPulling(false)
     }
 
+    const handleMoveToBacklog = async (taskId: string) => {
+        await supabase
+            .from('tasks')
+            .update({ 
+                status: 'backlog',
+                queue_position: null // Remove from queue
+            })
+            .eq('id', taskId)
+
+        router.refresh()
+    }
+
+    const handleMoveToQueue = async (taskId: string) => {
+        // Get the highest queue position
+        const maxPosition = queuedTasks.length > 0
+            ? Math.max(...queuedTasks.map(t => t.queue_position || 0))
+            : 0
+
+        await supabase
+            .from('tasks')
+            .update({ 
+                status: 'backlog',
+                queue_position: maxPosition + 1
+            })
+            .eq('id', taskId)
+
+        router.refresh()
+    }
+
     const handleAddTask = async () => {
         if (!newTaskTitle.trim()) return
 
@@ -91,12 +124,14 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                 user_id: user.id,
                 title: newTaskTitle,
                 notes: newTaskNotes || null,
+                project_id: newTaskProjectId || null,
                 status: 'backlog',
                 queue_position: maxPosition + 1
             })
 
         setNewTaskTitle('')
         setNewTaskNotes('')
+        setNewTaskProjectId('')
         setIsAddingTask(false)
         router.refresh()
     }
@@ -116,6 +151,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
         setEditingTask(task)
         setEditTitle(task.title)
         setEditNotes(task.notes || '')
+        setEditProjectId(task.project_id || '')
     }
 
     const handleUpdateTask = async () => {
@@ -125,12 +161,18 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
             .from('tasks')
             .update({
                 title: editTitle,
-                notes: editNotes || null
+                notes: editNotes || null,
+                project_id: editProjectId || null
             })
             .eq('id', editingTask.id)
 
         setEditingTask(null)
         router.refresh()
+    }
+
+    const getProjectName = (projectId: string | null) => {
+        if (!projectId) return null
+        return projects.find(p => p.id === projectId)?.project_name
     }
 
     const formatDate = (dateString: string) => {
@@ -187,6 +229,19 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                                     rows={3}
                                     className="w-full bg-zinc-900/50 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 resize-none transition-all"
                                 />
+                                <div className="flex items-center gap-2">
+                                    <Folder size={16} className="text-gray-500" />
+                                    <select
+                                        value={newTaskProjectId}
+                                        onChange={(e) => setNewTaskProjectId(e.target.value)}
+                                        className="flex-1 bg-zinc-900/50 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                                    >
+                                        <option value="">No Project</option>
+                                        {projects.filter(p => p.status === 'active').map(project => (
+                                            <option key={project.id} value={project.id}>{project.project_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleAddTask}
@@ -215,9 +270,17 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                                 className="group bg-zinc-800/40 hover:bg-zinc-800/60 border border-zinc-700/50 hover:border-zinc-600 rounded-xl p-3 cursor-grab active:cursor-grabbing transition-all shadow-sm hover:shadow-md"
                             >
                                 <div className="flex justify-between items-start gap-2">
-                                    <h3 className="text-sm font-medium text-gray-200 leading-snug">
-                                        {task.title}
-                                    </h3>
+                                    <div className="flex-1">
+                                        <h3 className="text-sm font-medium text-gray-200 leading-snug">
+                                            {task.title}
+                                        </h3>
+                                        {getProjectName(task.project_id) && (
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <Folder size={12} className="text-gray-500" />
+                                                <span className="text-xs text-gray-500">{getProjectName(task.project_id)}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => startEditing(task)}
@@ -300,6 +363,12 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                                             <h3 className="text-base font-medium text-white leading-snug">
                                                 {task.title}
                                             </h3>
+                                            {getProjectName(task.project_id) && (
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    <Folder size={14} className="text-blue-400/50" />
+                                                    <span className="text-xs text-blue-400/70">{getProjectName(task.project_id)}</span>
+                                                </div>
+                                            )}
                                             {task.notes && (
                                                 <div className="mt-3 pt-3 border-t border-blue-500/20">
                                                     <div className="flex items-start gap-2">
@@ -330,10 +399,23 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                                         </div>
                                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
+                                                onClick={() => handleMoveToBacklog(task.id)}
+                                                className="text-blue-400/50 hover:text-yellow-400 p-1 text-xs"
+                                                title="Move to Backlog"
+                                            >
+                                                <ArrowRight size={14} className="rotate-180" />
+                                            </button>
+                                            <button
                                                 onClick={() => startEditing(task)}
                                                 className="text-blue-400/50 hover:text-blue-300 p-1"
                                             >
                                                 <Pencil size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteTask(task.id)}
+                                                className="text-blue-400/50 hover:text-red-400 p-1"
+                                            >
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     </div>
@@ -420,6 +502,22 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
                                         rows={5}
                                         className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 resize-none transition-all"
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">PROJECT</label>
+                                    <div className="flex items-center gap-2">
+                                        <Folder size={16} className="text-gray-500" />
+                                        <select
+                                            value={editProjectId}
+                                            onChange={(e) => setEditProjectId(e.target.value)}
+                                            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                                        >
+                                            <option value="">No Project</option>
+                                            {projects.filter(p => p.status === 'active').map(project => (
+                                                <option key={project.id} value={project.id}>{project.project_name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="flex gap-3 pt-4">
                                     <button

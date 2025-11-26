@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan } from '@/lib/types/database'
+import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan, Project } from '@/lib/types/database'
 import WorkTabs from './work-tabs'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function WorkPage({
     searchParams,
@@ -16,8 +17,8 @@ export default async function WorkPage({
         return null
     }
 
-    // Use provided date or default to today
-    const selectedDate = params.date || new Date().toISOString().split('T')[0]
+    // Use provided date or default to today (in user's local timezone)
+    const selectedDate = params.date || getLocalDateString()
 
     // Fetch time blocks for selected date (Block tab)
     const { data: timeBlocks } = await supabase
@@ -81,12 +82,12 @@ export default async function WorkPage({
     const quarter = Math.floor(month / 3) + 1
     const currentQuarter = `${year}-Q${quarter}`
 
-    // Calculate week start (Sunday of current week)
+    // Calculate week start (Sunday of current week) in local timezone
     const today = new Date()
     const dayOfWeek = today.getDay()
     const weekStart = new Date(today)
     weekStart.setDate(today.getDate() - dayOfWeek)
-    const weekStartString = weekStart.toISOString().split('T')[0]
+    const weekStartString = getLocalDateString(weekStart)
 
     // Fetch quarterly plan
     const { data: quarterlyPlans } = await supabase
@@ -109,6 +110,31 @@ export default async function WorkPage({
 
     const weeklyPlan = weeklyPlans?.[0] || null
 
+    // Fetch all projects
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .returns<Project[]>()
+
+    // Fetch all quarterly plans for project linking
+    const { data: allQuarterlyPlans } = await supabase
+        .from('quarterly_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .returns<QuarterlyPlan[]>()
+
+    // Fetch all weekly plans for project linking
+    const { data: allWeeklyPlans } = await supabase
+        .from('weekly_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('week_start', { ascending: false })
+        .limit(10)
+        .returns<WeeklyPlan[]>()
+
     return (
         <WorkTabs
             // Block data
@@ -126,6 +152,10 @@ export default async function WorkPage({
             weeklyPlan={weeklyPlan}
             currentQuarter={currentQuarter}
             weekStart={weekStartString}
+            // Project data
+            projects={projects || []}
+            allQuarterlyPlans={allQuarterlyPlans || []}
+            allWeeklyPlans={allWeeklyPlans || []}
             // Initial tab
             initialTab={params.tab || 'block'}
         />

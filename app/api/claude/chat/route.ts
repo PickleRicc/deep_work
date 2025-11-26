@@ -6,6 +6,14 @@ const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+// Helper: Get local date string (server timezone-aware)
+function getLocalDateString(date: Date = new Date()): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
 // Types for tool execution
 interface ToolInput {
     [key: string]: any
@@ -18,10 +26,20 @@ interface ActionExecuted {
 }
 
 // Helper: Build context for Claude
-async function buildContext(userId: string, supabase: any) {
+async function buildContext(userId: string, supabase: any, userTimezone?: string) {
     const now = new Date()
-    const today = now.toISOString().split('T')[0]
-    const currentTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    // Get local date (handles timezone properly)
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const today = `${year}-${month}-${day}`
+    
+    // Get current time in 12-hour format
+    const hours = now.getHours()
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+    const currentTime = `${hour12}:${minutes} ${period}`
 
     // Get user profile
     const { data: userProfile, error: profileError } = await supabase
@@ -45,11 +63,14 @@ async function buildContext(userId: string, supabase: any) {
 
     const quarterlyPlan = quarterlyPlans?.[0]
 
-    // Get current week's weekly plan
+    // Get current week's weekly plan (using server's local timezone)
     const dayOfWeek = now.getDay()
     const weekStart = new Date(now)
     weekStart.setDate(now.getDate() - dayOfWeek)
-    const weekStartString = weekStart.toISOString().split('T')[0]
+    const weekStartYear = weekStart.getFullYear()
+    const weekStartMonth = String(weekStart.getMonth() + 1).padStart(2, '0')
+    const weekStartDay = String(weekStart.getDate()).padStart(2, '0')
+    const weekStartString = `${weekStartYear}-${weekStartMonth}-${weekStartDay}`
 
     const { data: weeklyPlans } = await supabase
         .from('weekly_plans')
@@ -82,13 +103,33 @@ async function buildContext(userId: string, supabase: any) {
         .eq('user_id', userId)
         .eq('status', 'backlog')
         .not('queue_position', 'is', null)
+        .order('queue_position', { ascending: true })
+
+    // Get all active projects
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', userId)
+        .in('status', ['active', 'on_hold'])
+        .order('priority', { ascending: false })
+
+    // Get backlog tasks (not queued)
+    const { data: backlogTasks } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'backlog')
+        .not('queue_position', 'is', null)
         .order('queue_position', { ascending: true})
         .limit(5)
 
-    // Get future time blocks (next 7 days)
+    // Get future time blocks (next 7 days) in local timezone
     const sevenDaysFromNow = new Date()
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
-    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0]
+    const sevenYear = sevenDaysFromNow.getFullYear()
+    const sevenMonth = String(sevenDaysFromNow.getMonth() + 1).padStart(2, '0')
+    const sevenDay = String(sevenDaysFromNow.getDate()).padStart(2, '0')
+    const sevenDaysStr = `${sevenYear}-${sevenMonth}-${sevenDay}`
 
     const { data: futureBlocks } = await supabase
         .from('time_blocks')
@@ -99,10 +140,13 @@ async function buildContext(userId: string, supabase: any) {
         .order('date', { ascending: true })
         .order('start_time', { ascending: true })
 
-    // Get recent notes (last 30 days) with tags
+    // Get recent notes (last 30 days) with tags - using local timezone
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyYear = thirtyDaysAgo.getFullYear()
+    const thirtyMonth = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')
+    const thirtyDay = String(thirtyDaysAgo.getDate()).padStart(2, '0')
+    const thirtyDaysAgoStr = `${thirtyYear}-${thirtyMonth}-${thirtyDay}`
 
     const { data: recentNotes } = await supabase
         .from('notes')
@@ -146,6 +190,8 @@ async function buildContext(userId: string, supabase: any) {
         futureBlocks: futureBlocks || [],
         activeTasks: activeTasks || [],
         queuedTasks: queuedTasks || [],
+        backlogTasks: backlogTasks || [],
+        projects: projects || [],
         recentNotes: recentNotes || [],
         behaviors: behaviors || [],
         recentCheckins: recentCheckins || [],
@@ -155,7 +201,7 @@ async function buildContext(userId: string, supabase: any) {
 
 // Helper: Format context into system prompt
 function formatSystemPrompt(context: any) {
-    const { today, currentTime, userProfile, quarterlyPlan, weeklyPlan, timeBlocks, futureBlocks, activeTasks, queuedTasks, recentNotes, behaviors, recentCheckins } = context
+    const { today, currentTime, userProfile, quarterlyPlan, weeklyPlan, timeBlocks, futureBlocks, activeTasks, queuedTasks, backlogTasks, projects, recentNotes, behaviors, recentCheckins } = context
 
     const displayDate = new Date(today).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -661,7 +707,7 @@ async function executeToolCall(
 }
 
 async function createTimeBlock(input: ToolInput, userId: string, supabase: any): Promise<string> {
-    const date = input.date || new Date().toISOString().split('T')[0]
+    const date = input.date || getLocalDateString()
     let { start_time, end_time, block_type, task_title } = input
 
     // Normalize time format to HH:MM:SS for consistent comparison
@@ -1161,7 +1207,7 @@ async function deleteBehavior(input: ToolInput, userId: string, supabase: any): 
 
 async function logBehaviorCheckin(input: ToolInput, userId: string, supabase: any): Promise<string> {
     const { behavior_id, date, completed, outcome_notes, reward_score } = input
-    const checkinDate = date || new Date().toISOString().split('T')[0]
+    const checkinDate = date || getLocalDateString()
 
     // Get behavior details
     const { data: behavior } = await supabase

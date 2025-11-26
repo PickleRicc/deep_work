@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Clock, ListTodo, Calendar } from 'lucide-react'
-import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan } from '@/lib/types/database'
+import { Clock, ListTodo, Calendar, Folder } from 'lucide-react'
+import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan, Project } from '@/lib/types/database'
 import BlockSchedule from '../block/block-schedule'
 import ActiveProjects from '../block/active-projects'
 import WorkHoursConfig from '../block/work-hours-config'
@@ -11,6 +11,7 @@ import PomodoroTimer from '@/components/pomodoro-timer'
 import NotificationManager from '@/components/notification-manager'
 import QueueManager from '../queue/queue-manager'
 import { PlanTabs } from '../plan/plan-tabs'
+import ProjectManager from './project-manager'
 
 interface WorkTabsProps {
     // Block data
@@ -28,18 +29,23 @@ interface WorkTabsProps {
     weeklyPlan: WeeklyPlan | null
     currentQuarter: string
     weekStart: string
+    // Project data
+    projects: Project[]
+    allQuarterlyPlans: QuarterlyPlan[]
+    allWeeklyPlans: WeeklyPlan[]
     // Initial tab
     initialTab: string
 }
 
-type TabType = 'block' | 'queue' | 'plan'
+type TabType = 'block' | 'queue' | 'projects' | 'plan'
 
 export default function WorkTabs(props: WorkTabsProps) {
     const [activeTab, setActiveTab] = useState<TabType>(props.initialTab as TabType || 'block')
 
     const tabs = [
         { id: 'block', name: 'Time Blocks', icon: Clock },
-        { id: 'queue', name: 'Task Queue', icon: ListTodo },
+        { id: 'queue', name: 'Tasks', icon: ListTodo },
+        { id: 'projects', name: 'Projects', icon: Folder },
         { id: 'plan', name: 'Planning', icon: Calendar },
     ]
 
@@ -60,7 +66,8 @@ export default function WorkTabs(props: WorkTabsProps) {
                         <h1 className="text-2xl sm:text-4xl font-bold text-white">Work</h1>
                         <p className="text-gray-400 mt-1 text-sm sm:text-base">
                             {activeTab === 'block' && displayDate}
-                            {activeTab === 'queue' && 'Pull-based task management'}
+                            {activeTab === 'queue' && 'Day-to-day tasks (1-2 days)'}
+                            {activeTab === 'projects' && 'Large initiatives (1+ weeks)'}
                             {activeTab === 'plan' && 'Multi-scale planning system'}
                         </p>
                     </div>
@@ -76,14 +83,13 @@ export default function WorkTabs(props: WorkTabsProps) {
                 {/* Tab Buttons */}
                 <div className="flex p-1 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl overflow-x-auto scrollbar-hide">
                     {tabs.map((tab) => {
-                        const Icon = tab.icon
                         const isActive = activeTab === tab.id
 
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as TabType)}
-                                className={`relative flex-1 min-w-[100px] py-3 px-4 sm:px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap ${
+                                className={`relative flex-1 min-w-[100px] py-3 px-4 sm:px-6 rounded-xl font-semibold transition-all flex items-center justify-center text-sm sm:text-base whitespace-nowrap ${
                                     isActive
                                         ? 'bg-zinc-800 text-white shadow-lg'
                                         : 'text-gray-400 hover:text-white'
@@ -100,7 +106,6 @@ export default function WorkTabs(props: WorkTabsProps) {
                                         }}
                                     />
                                 )}
-                                <Icon size={18} className={`relative z-10 ${isActive ? 'text-blue-400' : ''}`} />
                                 <span className="relative z-10">{tab.name}</span>
                             </button>
                         )
@@ -142,6 +147,23 @@ export default function WorkTabs(props: WorkTabsProps) {
                             activeTasks={props.activeTasks}
                             queuedTasks={props.queuedTasks}
                             completedTasks={props.completedTasks}
+                            projects={props.projects}
+                        />
+                    </motion.div>
+                )}
+
+                {activeTab === 'projects' && (
+                    <motion.div
+                        key="projects"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <ProjectManager
+                            projects={props.projects}
+                            quarterlyPlans={props.allQuarterlyPlans}
+                            weeklyPlans={props.allWeeklyPlans}
                         />
                     </motion.div>
                 )}

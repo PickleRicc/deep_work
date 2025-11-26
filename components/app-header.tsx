@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
-import { Brain, LogOut, User, MessageCircle, HelpCircle } from 'lucide-react'
+import { LogOut, User, MessageCircle, HelpCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -67,7 +67,7 @@ export default function AppHeader() {
     // Dynamic page name - use AI name for chat page
     const pageName = pathname === '/chat' 
         ? `${aiName} Assistant` 
-        : (staticPageNames[pathname] || 'Deep Work')
+        : (staticPageNames[pathname] || 'Yinsen')
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -83,16 +83,16 @@ export default function AppHeader() {
                 {/* Logo and App Name */}
                 <div className="flex items-center gap-4">
                     <motion.div
-                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20"
+                        className="flex lg:hidden items-center justify-center w-10 h-10 rounded-2xl overflow-hidden"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                     >
-                        <Brain size={24} className="text-white" strokeWidth={2.5} />
+                        <img src="/yinsen_logo_blue.png" alt="Yinsen" className="w-full h-full object-contain" />
                     </motion.div>
                     <div className="flex items-center gap-3">
                         <div>
-                            <h1 className="text-xl font-bold text-white">Deep Work</h1>
-                            <p className="text-xs text-gray-500 hidden md:block">{pageName}</p>
+                            <h1 className="text-xl font-bold text-white lg:hidden">Yinsen</h1>
+                            <p className="text-xs text-gray-500 hidden md:block lg:text-base lg:text-white">{pageName}</p>
                         </div>
                         
                         {/* Quote Display */}

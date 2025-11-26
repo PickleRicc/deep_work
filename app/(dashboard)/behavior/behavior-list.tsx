@@ -6,6 +6,7 @@ import { Behavior, BehaviorCheckin } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { getLocalDateString } from '@/lib/utils/date'
 
 interface BehaviorListProps {
     behaviors: Behavior[]
@@ -20,7 +21,7 @@ export default function BehaviorList({ behaviors, checkins, isRewarding, onEdit,
     const supabase = createClient()
     const [checkingIn, setCheckingIn] = useState<string | null>(null)
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateString()
 
     const handleQuickCheckin = async (behaviorId: string) => {
         setCheckingIn(behaviorId)

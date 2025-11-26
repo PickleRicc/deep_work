@@ -5,11 +5,11 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Clock, MessageSquare, Brain, BookOpen, TrendingUp, BarChart3, HelpCircle } from 'lucide-react'
+import { Clock, MessageSquare, Home, BookOpen, TrendingUp, BarChart3, HelpCircle } from 'lucide-react'
 import HowToUseModal from './how-to-use-modal'
 
 const navItems = [
-    { name: 'Home', icon: Brain, href: '/home' },
+    { name: 'Home', icon: Home, href: '/home' },
     { name: 'Work', icon: Clock, href: '/work' },
     { name: 'Chat', icon: MessageSquare, href: '/chat' },
     { name: 'Notebook', icon: BookOpen, href: '/notebook' },
@@ -31,12 +31,12 @@ export default function DesktopNav() {
             {/* Logo Section */}
             <div className="p-6 border-b border-zinc-800">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20">
-                        <Brain size={24} className="text-white" strokeWidth={2.5} />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-2xl overflow-hidden">
+                        <img src="/yinsen_logo_blue.png" alt="Yinsen" className="w-full h-full object-contain" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-white">Deep Work</h2>
-                        <p className="text-xs text-gray-500">Focus System</p>
+                        <h2 className="text-lg font-bold text-white">Yinsen</h2>
+                        <p className="text-xs text-gray-500">AI Productivity</p>
                     </div>
                 </div>
             </div>
@@ -109,7 +109,7 @@ export default function DesktopNav() {
 
                 <div className="px-4 py-3 text-xs text-gray-600">
                     <p>Built for deep focus</p>
-                    <p className="mt-1">© 2024 Deep Work</p>
+                    <p className="mt-1">© 2024 Yinsen</p>
                 </div>
             </div>
 

@@ -7,6 +7,7 @@ import FocusStatsCard from './focus-stats-card'
 import WeeklyPlanCard from './weekly-plan-card'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function HomePage() {
     const supabase = await createClient()
@@ -18,7 +19,7 @@ export default async function HomePage() {
     }
 
     const now = new Date()
-    const today = now.toISOString().split('T')[0]
+    const today = getLocalDateString()
     const currentTime = now.toTimeString().slice(0, 5)
 
     // Fetch today's time blocks
@@ -54,7 +55,7 @@ export default async function HomePage() {
     const dayOfWeek = now.getDay()
     const weekStart = new Date(now)
     weekStart.setDate(now.getDate() - dayOfWeek)
-    const weekStartString = weekStart.toISOString().split('T')[0]
+    const weekStartString = getLocalDateString(weekStart)
 
     const { data: weeklyPlans } = await supabase
         .from('weekly_plans')
@@ -68,7 +69,7 @@ export default async function HomePage() {
     // Fetch last 30 days of blocks for analytics
     const thirtyDaysAgo = new Date(now)
     thirtyDaysAgo.setDate(now.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo)
 
     const { data: allBlocks } = await supabase
         .from('time_blocks')

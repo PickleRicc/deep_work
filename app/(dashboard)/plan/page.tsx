@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { QuarterlyPlan, WeeklyPlan } from '@/lib/types/database'
 import { PlanTabs } from './plan-tabs'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function PlanPage() {
     const supabase = await createClient()
@@ -29,12 +30,12 @@ export default async function PlanPage() {
 
     const quarterlyPlan = quarterlyPlans?.[0] || null
 
-    // Calculate week start (Sunday of current week)
+    // Calculate week start (Sunday of current week) in local timezone
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Sunday
     const weekStart = new Date(today)
     weekStart.setDate(today.getDate() - dayOfWeek)
-    const weekStartString = weekStart.toISOString().split('T')[0]
+    const weekStartString = getLocalDateString(weekStart)
 
     // Fetch weekly plan where week_start matches
     const { data: weeklyPlans } = await supabase

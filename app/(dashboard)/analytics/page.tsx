@@ -14,6 +14,7 @@ import FocusHeatmap from './focus-heatmap'
 import PeakHoursChart from './peak-hours-chart'
 import ProductivityScore from './productivity-score'
 import { BarChart3 } from 'lucide-react'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function AnalyticsPage() {
     const supabase = await createClient()
@@ -24,11 +25,11 @@ export default async function AnalyticsPage() {
         return null
     }
 
-    // Calculate date ranges
+    // Calculate date ranges in local timezone
     const now = new Date()
     const thirtyDaysAgo = new Date(now)
     thirtyDaysAgo.setDate(now.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo)
 
     // Fetch all time blocks for last 30 days
     const { data: allBlocks } = await supabase

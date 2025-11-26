@@ -4,6 +4,7 @@ import ActiveProjects from './active-projects'
 import BlockSchedule from './block-schedule'
 import WorkHoursConfig from './work-hours-config'
 import PomodoroTimer from '@/components/pomodoro-timer'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function BlockPage({
     searchParams,
@@ -19,8 +20,8 @@ export default async function BlockPage({
         return null
     }
 
-    // Use provided date or default to today
-    const selectedDate = params.date || new Date().toISOString().split('T')[0]
+    // Use provided date or default to today (in user's local timezone)
+    const selectedDate = params.date || getLocalDateString()
 
     // Format date for display
     const displayDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {

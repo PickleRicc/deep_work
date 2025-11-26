@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Behavior, BehaviorCheckin } from '@/lib/types/database'
 import BehaviorManager from './behavior-manager'
+import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function BehaviorPage() {
     const supabase = await createClient()
@@ -19,10 +20,10 @@ export default async function BehaviorPage() {
         .order('behavior_name', { ascending: true })
         .returns<Behavior[]>()
 
-    // Fetch recent check-ins (last 30 days)
+    // Fetch recent check-ins (last 30 days) in local timezone
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo)
 
     const { data: checkins } = await supabase
         .from('behavior_checkins')

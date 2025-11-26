@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { Clock, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { TimeBlock } from '@/lib/types/database'
 import Link from 'next/link'
+import { format12Hour } from '@/lib/utils/date'
 
 interface CurrentBlockCardProps {
     currentBlock: TimeBlock | undefined
@@ -50,7 +51,7 @@ export default function CurrentBlockCard({ currentBlock, nextBlock, currentTime 
                 </h3>
 
                 <div className="flex items-center gap-4 text-sm">
-                    <span className="font-mono">{currentBlock.start_time.slice(0, 5)} - {currentBlock.end_time.slice(0, 5)}</span>
+                    <span className="font-mono">{format12Hour(currentBlock.start_time)} - {format12Hour(currentBlock.end_time)}</span>
                     <span>•</span>
                     <span>{calculateDuration(currentBlock.start_time, currentBlock.end_time)} min</span>
                 </div>
@@ -90,7 +91,7 @@ export default function CurrentBlockCard({ currentBlock, nextBlock, currentTime 
                 </h3>
 
                 <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span className="font-mono">{nextBlock.start_time.slice(0, 5)} - {nextBlock.end_time.slice(0, 5)}</span>
+                    <span className="font-mono">{format12Hour(nextBlock.start_time)} - {format12Hour(nextBlock.end_time)}</span>
                     <span>•</span>
                     <span className={`px-2 py-0.5 rounded ${getBlockTypeColor(nextBlock.block_type)}`}>
                         {label}

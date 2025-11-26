@@ -21,23 +21,26 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Deep Work - Productivity System",
-  description: "Cal Newport-inspired productivity system with AI-powered task management for deep focus and meaningful work",
+  title: "Yinsen - AI Productivity System",
+  description: "AI-powered productivity system with intelligent task management for deep focus and meaningful work",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Deep Work",
+    title: "Yinsen",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
+      { url: "/yinsen_logo_blue.png", sizes: "any", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
+    shortcut: [{ url: "/yinsen_logo_blue.png" }],
     apple: [
+      { url: "/yinsen_logo_blue.png", sizes: "any", type: "image/png" },
       { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
@@ -55,7 +58,8 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="icon" type="image/png" href="/yinsen_logo_blue.png" />
+        <link rel="apple-touch-icon" href="/yinsen_logo_blue.png" />
       </head>
       <body className={`${spaceGrotesk.variable} antialiased`}>
         {children}

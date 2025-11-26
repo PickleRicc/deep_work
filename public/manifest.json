@@ -1,7 +1,7 @@
 {
-  "name": "Deep Work",
-  "short_name": "Deep Work",
-  "description": "A Cal Newport-inspired productivity system for deep focus and meaningful work",
+  "name": "Yinsen",
+  "short_name": "Yinsen",
+  "description": "AI-powered productivity system for deep focus and meaningful work",
   "start_url": "/block",
   "display": "standalone",
   "background_color": "#000000",

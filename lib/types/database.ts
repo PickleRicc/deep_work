@@ -4,6 +4,29 @@ export type BlockType = 'deep_work' | 'shallow_work' | 'break' | 'personal' | 'm
 
 export type TaskStatus = 'backlog' | 'active' | 'completed' | 'archived'
 
+export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'archived'
+
+export type Priority = 'low' | 'medium' | 'high' | 'urgent'
+
+export interface Project {
+    id: string
+    user_id: string
+    project_name: string
+    description: string | null
+    status: ProjectStatus
+    priority: Priority
+    start_date: string | null // YYYY-MM-DD
+    target_completion_date: string | null // YYYY-MM-DD
+    actual_completion_date: string | null // YYYY-MM-DD
+    quarterly_plan_id: string | null
+    weekly_plan_id: string | null
+    progress_percentage: number
+    tags: string[] | null
+    notes: string | null
+    created_at: string
+    updated_at: string
+}
+
 export interface TimeBlock {
     id: string
     user_id: string
@@ -24,6 +47,7 @@ export interface Task {
     status: TaskStatus
     queue_position: number | null
     notes: string | null
+    project_id: string | null
     created_at: string
     completed_at: string | null
 }
@@ -201,6 +225,7 @@ export interface AIInsight {
 export type Tables = {
     time_blocks: TimeBlock
     tasks: Task
+    projects: Project
     quarterly_plans: QuarterlyPlan
     weekly_plans: WeeklyPlan
     ai_conversations: AIConversation

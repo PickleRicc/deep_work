@@ -26,6 +26,7 @@ import {
     GripVertical
 } from 'lucide-react'
 import { useAI } from '@/contexts/ai-context'
+import { getLocalDateString, addDays, format12Hour } from '@/lib/utils/date'
 
 interface BlockScheduleProps {
     blocks: TimeBlock[]
@@ -48,12 +49,9 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
     useEffect(() => {
         const updateTime = () => {
             const now = new Date()
-            const timeString = now.toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-            setCurrentTime(timeString)
+            const hours = String(now.getHours()).padStart(2, '0')
+            const minutes = String(now.getMinutes()).padStart(2, '0')
+            setCurrentTime(`${hours}:${minutes}`)
         }
         updateTime()
         const interval = setInterval(updateTime, 60000)
@@ -285,13 +283,12 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
     // Date navigation functions
     const navigateDate = (days: number) => {
         const newDate = new Date(selectedDate + 'T12:00:00')
-        newDate.setDate(newDate.getDate() + days)
-        const dateString = newDate.toISOString().split('T')[0]
+        const dateString = addDays(newDate, days)
         router.push(`/block?date=${dateString}`)
     }
 
     const goToToday = () => {
-        const today = new Date().toISOString().split('T')[0]
+        const today = getLocalDateString()
         router.push(`/block?date=${today}`)
     }
 
@@ -324,8 +321,8 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
         }
     }
 
-    // Check if selected date is today
-    const isToday = selectedDate === new Date().toISOString().split('T')[0]
+    // Check if selected date is today (in user's local timezone)
+    const isToday = selectedDate === getLocalDateString()
 
     // Derived State Logic - only show "current" if viewing today
     const currentBlock = isToday ? blocks.find(b =>
@@ -474,13 +471,13 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                 style={{ height: '60px' }}
                             >
                                 {/* Time Label */}
-                                <div className={`w-20 flex-shrink-0 p-3 text-sm font-mono border-r border-zinc-800 ${
+                                <div className={`w-24 flex-shrink-0 p-3 text-xs font-mono border-r border-zinc-800 ${
                                     isHourMark ? 'text-gray-400 font-semibold' : 'text-gray-600'
                                 }`}>
                                     {isHourMark ? (
-                                        <span>{slot}</span>
+                                        <span>{format12Hour(slot)}</span>
                                     ) : (
-                                        <span className="text-xs">{slot}</span>
+                                        <span className="text-[10px]">{format12Hour(slot)}</span>
                                     )}
                                 </div>
                                 
@@ -599,7 +596,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                                     {block.task_title}
                                                 </div>
                                                 <div className="text-[10px] text-white/60 font-mono">
-                                                    {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                                    {format12Hour(block.start_time)} - {format12Hour(block.end_time)}
                                                 </div>
                                             </div>
                                         </div>
@@ -683,7 +680,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                                     ? 'bg-white/20 text-white backdrop-blur-sm' 
                                                     : 'bg-black/20 text-white/80 backdrop-blur-sm'
                                             }`}>
-                                                {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
+                                                {format12Hour(block.start_time)} - {format12Hour(block.end_time)}
                                             </div>
                                             
                                             {/* Action Buttons */}
@@ -785,12 +782,12 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                         {currentBlock.task_id && (
                                             <div className="flex items-center gap-1.5 mb-2 text-blue-300/70 text-sm">
                                                 <ListTodo size={14} />
-                                                <span>{activeTasks.find(t => t.id === currentBlock.task_id)?.title || 'Linked Project'}</span>
+                                                <span>{activeTasks.find(t => t.id === currentBlock.task_id)?.title || 'Linked Task'}</span>
                                             </div>
                                         )}
                                         <div className="flex items-center gap-2 text-blue-200/70 font-medium">
                                             <Clock size={16} />
-                                            {currentBlock.start_time.slice(0, 5)} - {currentBlock.end_time.slice(0, 5)}
+                                            {format12Hour(currentBlock.start_time)} - {format12Hour(currentBlock.end_time)}
                                         </div>
                                     </div>
                                 </div>
@@ -829,8 +826,8 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     transition={{ delay: index * 0.05 }}
                                     className={`group flex items-center gap-4 p-4 rounded-xl border bg-gradient-to-r backdrop-blur-sm transition-all hover:translate-x-1 ${getBlockColor(block.block_type)}`}
                                 >
-                                    <div className="text-sm font-mono font-medium opacity-70 w-24 flex-shrink-0">
-                                        {block.start_time.slice(0, 5)}
+                                    <div className="text-sm font-mono font-medium opacity-70 w-32 flex-shrink-0">
+                                        {format12Hour(block.start_time)}
                                     </div>
 
                                     <div className="flex-1 flex items-center gap-3 min-w-0">
@@ -844,7 +841,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                             {block.task_id && (
                                                 <span className="text-xs text-blue-400/70 flex items-center gap-1 mt-0.5">
                                                     <ListTodo size={12} />
-                                                    {activeTasks.find(t => t.id === block.task_id)?.title || 'Linked Project'}
+                                                    {activeTasks.find(t => t.id === block.task_id)?.title || 'Linked Task'}
                                                 </span>
                                             )}
                                         </div>
@@ -882,8 +879,8 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     key={block.id}
                                     className="group flex items-center gap-4 p-4 rounded-xl border border-zinc-800 bg-zinc-900/30"
                                 >
-                                    <div className="text-sm font-mono text-gray-500 w-24 flex-shrink-0 line-through">
-                                        {block.start_time.slice(0, 5)}
+                                    <div className="text-sm font-mono text-gray-500 w-32 flex-shrink-0 line-through">
+                                        {format12Hour(block.start_time)}
                                     </div>
 
                                     <div className="flex-1 flex items-center gap-3 min-w-0">

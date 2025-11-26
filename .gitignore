@@ -28,11 +28,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (can opt-in for commiting if needed)
 .env*
-!.env.local.example
 
 # vercel
 .vercel
@@ -40,3 +38,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Capacitor
+.capacitor
+android/app/src/main/assets/public/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+android/app/src/main/assets/capacitor.config.json
+
+# Android
+android/.idea
+android/.gradle
+android/app/build
+android/build
+android/local.properties
+android/gradle
+android/gradlew
+android/gradlew.bat
+*.keystore
+
+# iOS
+ios/App/Pods
+ios/App/Podfile.lock
+ios/App/App.xcworkspace
+xcuserdata/
+*.xcuserdatad
+DerivedData/
