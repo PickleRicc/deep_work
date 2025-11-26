@@ -224,18 +224,20 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/80 backdrop-blur-md"
             style={{ 
                 paddingTop: 'max(env(safe-area-inset-top), 16px)',
-                paddingBottom: 'max(env(safe-area-inset-bottom), 16px)'
+                paddingBottom: 'calc(100px + env(safe-area-inset-bottom))',
+                paddingLeft: '16px',
+                paddingRight: '16px'
             }}
         >
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col"
-                style={{ maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)' }}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col my-auto"
+                style={{ maxHeight: 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))' }}
             >
                 {/* Header - Fixed at top */}
                 <div className="flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b border-zinc-800 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
