@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bot, Send, Sparkles } from 'lucide-react'
+import { Bot, Send, Sparkles, Settings } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import IntakeQuestionnaire from '@/components/intake-questionnaire'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -17,11 +19,38 @@ const quickActions = [
 ]
 
 export default function ChatInterface() {
+    const supabase = createClient()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
+    const [showIntake, setShowIntake] = useState(false)
+    const [hasProfile, setHasProfile] = useState<boolean | null>(null)
+    const [userName, setUserName] = useState<string>('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    // Check if user has completed intake
+    useEffect(() => {
+        async function checkProfile() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('intake_completed, display_name')
+                .eq('user_id', user.id)
+                .single()
+
+            setHasProfile(profile?.intake_completed || false)
+            setUserName(profile?.display_name || '')
+            
+            // Auto-show intake if not completed
+            if (!profile?.intake_completed) {
+                setShowIntake(true)
+            }
+        }
+        checkProfile()
+    }, [])
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -73,7 +102,20 @@ export default function ChatInterface() {
     }
 
     return (
-        <div className="flex flex-col h-full max-h-[calc(100vh-200px)]">
+        <>
+            {/* Intake Questionnaire Modal */}
+            <IntakeQuestionnaire
+                isOpen={showIntake}
+                onClose={() => setShowIntake(false)}
+                onComplete={() => {
+                    setShowIntake(false)
+                    setHasProfile(true)
+                    // Refresh to get the new name
+                    window.location.reload()
+                }}
+            />
+
+            <div className="flex flex-col h-full max-h-[calc(100vh-200px)]">
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
                 <AnimatePresence mode="popLayout">
@@ -89,11 +131,20 @@ export default function ChatInterface() {
                                     <Bot size={40} className="text-blue-400" strokeWidth={1.5} />
                                 </div>
                                 <h2 className="text-2xl font-bold text-white mb-2">
-                                    Hi Eric! How can I help?
+                                    Hi{userName ? ` ${userName}` : ''}! How can I help?
                                 </h2>
-                                <p className="text-gray-400">
+                                <p className="text-gray-400 mb-4">
                                     I can manage your schedule, tasks, and plans.
                                 </p>
+                                {!hasProfile && (
+                                    <button
+                                        onClick={() => setShowIntake(true)}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-all"
+                                    >
+                                        <Settings size={16} />
+                                        Complete your profile for personalized assistance
+                                    </button>
+                                )}
                             </div>
 
                             {/* Quick Actions */}
@@ -196,5 +247,6 @@ export default function ChatInterface() {
                 </p>
             </div>
         </div>
+        </>
     )
 }

@@ -118,6 +118,85 @@ export interface UserWorkHours {
     updated_at: string
 }
 
+export interface UserProfile {
+    id: string
+    user_id: string
+    display_name: string | null
+    
+    // Work Style
+    work_style: 'focused_blocks' | 'flexible_sprints' | 'task_switching' | null
+    preferred_work_duration: number
+    preferred_break_duration: number
+    
+    // Chronotype
+    chronotype: 'early_bird' | 'night_owl' | 'flexible' | null
+    peak_hours_start: string
+    peak_hours_end: string
+    secondary_peak_start: string | null
+    secondary_peak_end: string | null
+    
+    // Employment
+    employment_type: 'business_owner' | 'employee' | 'freelancer' | 'student' | 'other' | null
+    has_fixed_schedule: boolean
+    typical_work_start: string
+    typical_work_end: string
+    
+    // Motivations
+    motivations: string[] | null
+    values: string[] | null
+    goals_short_term: string | null
+    goals_long_term: string | null
+    
+    // Life Circumstances
+    has_caregiving_responsibilities: boolean
+    caregiving_notes: string | null
+    external_commitments: string | null
+    
+    // Health
+    health_considerations: string[] | null
+    accommodation_preferences: string | null
+    
+    // Notifications
+    reminder_style: 'gentle' | 'assertive' | 'minimal' | 'none'
+    notification_frequency: 'frequent' | 'balanced' | 'minimal'
+    preferred_reminder_times: string[] | null
+    
+    // AI Preferences
+    ai_name: string
+    ai_personality: 'supportive' | 'direct' | 'analytical' | 'motivational'
+    wants_accountability: boolean
+    wants_suggestions: boolean
+    wants_insights: boolean
+    
+    // Push Notifications
+    push_subscription: any | null
+    notifications_enabled: boolean
+    notify_before_block: number
+    
+    // Onboarding
+    intake_completed: boolean
+    intake_completed_at: string | null
+    
+    created_at: string
+    updated_at: string
+}
+
+export interface AIInsight {
+    id: string
+    user_id: string
+    insight_type: 'pattern' | 'blindspot' | 'recommendation' | 'celebration'
+    category: string | null
+    title: string
+    content: string
+    related_data: Record<string, any> | null
+    confidence_score: number | null
+    is_dismissed: boolean
+    is_acted_upon: boolean
+    user_feedback: 'helpful' | 'not_helpful' | 'already_knew' | null
+    valid_until: string | null
+    created_at: string
+}
+
 // Database table names
 export type Tables = {
     time_blocks: TimeBlock
@@ -131,4 +210,6 @@ export type Tables = {
     behaviors: Behavior
     behavior_checkins: BehaviorCheckin
     user_work_hours: UserWorkHours
+    user_profiles: UserProfile
+    ai_insights: AIInsight
 }

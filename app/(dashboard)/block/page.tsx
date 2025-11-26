@@ -3,6 +3,7 @@ import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
 import ActiveProjects from './active-projects'
 import BlockSchedule from './block-schedule'
 import WorkHoursConfig from './work-hours-config'
+import PomodoroTimer from '@/components/pomodoro-timer'
 
 export default async function BlockPage({
     searchParams,
@@ -56,13 +57,18 @@ export default async function BlockPage({
         .returns<UserWorkHours[]>()
 
     return (
-        <div className="space-y-8 px-4 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-bold text-white">Time Blocking</h1>
-                    <p className="text-gray-400 mt-1">{displayDate}</p>
+        <div className="space-y-6 md:space-y-8 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-6xl mx-auto">
+            <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-2xl sm:text-4xl font-bold text-white">Time Blocking</h1>
+                        <p className="text-gray-400 mt-1 text-sm sm:text-base">{displayDate}</p>
+                    </div>
                 </div>
-                <WorkHoursConfig userId={user.id} />
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <PomodoroTimer variant="inline" />
+                    <WorkHoursConfig userId={user.id} />
+                </div>
             </div>
 
             <ActiveProjects tasks={activeTasks || []} />

@@ -47,10 +47,10 @@ export default async function PlanPage() {
     const weeklyPlan = weeklyPlans?.[0] || null
 
     return (
-        <div className="space-y-8 px-4 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto">
+        <div className="space-y-6 md:space-y-8 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-6xl mx-auto">
             <div>
-                <h1 className="text-4xl font-bold text-white">Planning</h1>
-                <p className="text-gray-400 mt-1">Multi-scale planning system</p>
+                <h1 className="text-2xl sm:text-4xl font-bold text-white">Planning</h1>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Multi-scale planning system</p>
             </div>
 
             <PlanTabs

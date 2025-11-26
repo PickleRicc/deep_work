@@ -143,10 +143,10 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
     const availableSlots = 3 - activeTasks.length
 
     return (
-        <div className="h-full w-full px-4 md:px-8 lg:px-12 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 h-full">
+        <div className="h-full w-full px-4 md:px-8 lg:px-12 pb-6 overflow-y-auto">
+            <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 md:h-full">
             {/* BACKLOG COLUMN */}
-            <div className="w-full flex flex-col bg-zinc-900/30 backdrop-blur-sm border border-zinc-800/50 rounded-2xl h-[600px] md:h-full">
+            <div className="w-full flex flex-col bg-zinc-900/30 backdrop-blur-sm border border-zinc-800/50 rounded-2xl min-h-[400px] md:h-full">
                 <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-gray-500" />
@@ -263,7 +263,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
             </div>
 
             {/* ACTIVE COLUMN */}
-            <div className="w-full flex flex-col bg-blue-900/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl h-[600px] md:h-full">
+            <div className="w-full flex flex-col bg-blue-900/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl min-h-[350px] md:h-full">
                 <div className="p-4 border-b border-blue-500/20 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
@@ -345,7 +345,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks 
             </div>
 
             {/* DONE COLUMN */}
-            <div className="w-full flex flex-col bg-zinc-900/30 backdrop-blur-sm border border-zinc-800/50 rounded-2xl h-[600px] md:h-full opacity-75 hover:opacity-100 transition-opacity">
+            <div className="w-full flex flex-col bg-zinc-900/30 backdrop-blur-sm border border-zinc-800/50 rounded-2xl min-h-[300px] md:h-full opacity-75 hover:opacity-100 transition-opacity">
                 <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500" />

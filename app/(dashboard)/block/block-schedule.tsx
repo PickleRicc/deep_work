@@ -4,7 +4,7 @@ import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import {
     Clock,
@@ -22,7 +22,8 @@ import {
     Users,
     ChevronLeft,
     ChevronRight,
-    ListTodo
+    ListTodo,
+    GripVertical
 } from 'lucide-react'
 
 interface BlockScheduleProps {
@@ -37,6 +38,9 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
     const supabase = createClient()
     const [completingBlockId, setCompletingBlockId] = useState<string | null>(null)
     const [currentTime, setCurrentTime] = useState('')
+    const [draggedBlock, setDraggedBlock] = useState<TimeBlock | null>(null)
+    const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
+    const timelineRef = useRef<HTMLDivElement>(null)
 
     // Update current time every minute
     useEffect(() => {
@@ -131,15 +135,109 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
         router.refresh()
     }
 
-    const openAddModal = () => {
+    const openAddModal = (presetStartTime?: string, presetEndTime?: string) => {
         setEditingBlock(null)
-        setStartTime('09:00')
-        setEndTime('10:00')
+        setStartTime(presetStartTime || '09:00')
+        setEndTime(presetEndTime || (presetStartTime ? addMinutesToTime(presetStartTime, 60) : '10:00'))
         setBlockType('deep_work')
         setTaskTitle('')
         setBlockDate(selectedDate)
         setTaskId('')
         setIsModalOpen(true)
+    }
+
+    // Helper to add minutes to time string
+    const addMinutesToTime = (time: string, minutes: number): string => {
+        const [hours, mins] = time.split(':').map(Number)
+        const totalMinutes = hours * 60 + mins + minutes
+        const newHours = Math.floor(totalMinutes / 60) % 24
+        const newMins = totalMinutes % 60
+        return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`
+    }
+
+    // Click on timeline to create block
+    const handleTimelineClick = (slot: string, e: React.MouseEvent) => {
+        // Don't create if clicking on an existing block
+        if ((e.target as HTMLElement).closest('.time-block-item')) return
+        
+        // Check if slot already has a block
+        const hasBlock = blocks.some(block => {
+            const blockStart = block.start_time.slice(0, 5)
+            const blockEnd = block.end_time.slice(0, 5)
+            return slot >= blockStart && slot < blockEnd
+        })
+        
+        if (!hasBlock) {
+            openAddModal(slot)
+        }
+    }
+
+    // Drag and drop handlers
+    const handleDragStart = (e: React.DragEvent, block: TimeBlock) => {
+        setDraggedBlock(block)
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', block.id)
+    }
+
+    const handleDragEnd = () => {
+        setDraggedBlock(null)
+        setDragOverSlot(null)
+    }
+
+    const handleDragOver = (e: React.DragEvent, slot: string) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        setDragOverSlot(slot)
+    }
+
+    const handleDragLeave = () => {
+        setDragOverSlot(null)
+    }
+
+    const handleDrop = async (e: React.DragEvent, slot: string) => {
+        e.preventDefault()
+        setDragOverSlot(null)
+        
+        if (!draggedBlock) return
+        
+        // Calculate new times
+        const originalDuration = getBlockDurationMinutes(draggedBlock)
+        const newStartTime = slot
+        const newEndTime = addMinutesToTime(slot, originalDuration)
+        
+        // Check for overlaps with other blocks (excluding the dragged one)
+        const hasOverlap = blocks.some(block => {
+            if (block.id === draggedBlock.id) return false
+            const blockStart = block.start_time.slice(0, 5)
+            const blockEnd = block.end_time.slice(0, 5)
+            return (
+                (newStartTime >= blockStart && newStartTime < blockEnd) ||
+                (newEndTime > blockStart && newEndTime <= blockEnd) ||
+                (newStartTime <= blockStart && newEndTime >= blockEnd)
+            )
+        })
+        
+        if (hasOverlap) {
+            alert('Cannot move block here - it would overlap with another block')
+            return
+        }
+        
+        // Update block in database
+        await supabase
+            .from('time_blocks')
+            .update({
+                start_time: newStartTime,
+                end_time: newEndTime
+            })
+            .eq('id', draggedBlock.id)
+        
+        router.refresh()
+    }
+
+    const getBlockDurationMinutes = (block: TimeBlock): number => {
+        const [startH, startM] = block.start_time.split(':').map(Number)
+        const [endH, endM] = block.end_time.split(':').map(Number)
+        return (endH * 60 + endM) - (startH * 60 + startM)
     }
 
     const openEditModal = (block: TimeBlock) => {
@@ -246,67 +344,64 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
     return (
         <div className="space-y-8">
             {/* HEADER WITH DATE PICKER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <Calendar className="text-blue-500" /> Schedule
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                        <Calendar className="text-blue-500" size={20} /> Schedule
                     </h2>
+                    <button
+                        onClick={() => openAddModal()}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-white p-2 rounded-lg transition-colors border border-zinc-700"
+                    >
+                        <Plus size={20} />
+                    </button>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                     {/* Date Navigation */}
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800 rounded-xl p-1">
-                            <button
-                                onClick={() => navigateDate(-1)}
-                                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            >
-                                <ChevronLeft size={18} />
-                            </button>
-                            
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={handleDateChange}
-                                className="bg-transparent border-none text-white text-sm font-medium px-2 focus:outline-none cursor-pointer"
-                            />
-                            
-                            <button
-                                onClick={() => navigateDate(1)}
-                                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            >
-                                <ChevronRight size={18} />
-                            </button>
-                        </div>
+                    <div className="flex items-center gap-1 bg-zinc-900/50 border border-zinc-800 rounded-xl p-1">
+                        <button
+                            onClick={() => navigateDate(-1)}
+                            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
                         
-                        {isToday && (
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-blue-500/30"
-                            >
-                                TODAY
-                            </motion.div>
-                        )}
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            className="bg-transparent border-none text-white text-sm font-medium px-1 sm:px-2 focus:outline-none cursor-pointer w-[130px] sm:w-auto"
+                        />
+                        
+                        <button
+                            onClick={() => navigateDate(1)}
+                            className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-white"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
                     </div>
+                    
+                    {isToday && (
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg shadow-blue-500/30"
+                        >
+                            TODAY
+                        </motion.div>
+                    )}
 
                     {!isToday && (
                         <motion.button
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             onClick={goToToday}
-                            className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors"
+                            className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors"
                         >
                             Today
                         </motion.button>
                     )}
-
-                    <button
-                        onClick={openAddModal}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-white p-2 rounded-lg transition-colors border border-zinc-700"
-                    >
-                        <Plus size={20} />
-                    </button>
                 </div>
             </div>
 
@@ -326,7 +421,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                     </p>
                     <div className="flex justify-center gap-4">
                         <button
-                            onClick={openAddModal}
+                            onClick={() => openAddModal()}
                             className="bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors border border-zinc-700 flex items-center gap-2"
                         >
                             <Plus size={18} /> Add Block
@@ -343,20 +438,36 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
 
             {/* VISUAL TIMETABLE */}
             <div className="bg-zinc-950/50 border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="relative">
+                <div className="relative" ref={timelineRef}>
                     {/* Time Grid */}
                     {timeSlots.map((slot, index) => {
                         const hour = parseInt(slot.split(':')[0])
                         const isWorkHour = hour >= visibleHours.start + 2 && hour < visibleHours.end - 2
                         const isHourMark = slot.endsWith(':00')
+                        const isDragOver = dragOverSlot === slot
+                        
+                        // Check if this slot is occupied by a block
+                        const isOccupied = blocks.some(block => {
+                            const blockStart = block.start_time.slice(0, 5)
+                            const blockEnd = block.end_time.slice(0, 5)
+                            return slot >= blockStart && slot < blockEnd
+                        })
                         
                         return (
                             <div
                                 key={slot}
-                                className={`flex border-b transition-colors ${
+                                onClick={(e) => handleTimelineClick(slot, e)}
+                                onDragOver={(e) => handleDragOver(e, slot)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, slot)}
+                                className={`flex border-b transition-all cursor-pointer group ${
                                     isHourMark ? 'border-zinc-700' : 'border-zinc-800/50'
                                 } ${
                                     isWorkHour ? 'bg-blue-500/5' : 'bg-transparent'
+                                } ${
+                                    isDragOver ? 'bg-blue-500/20 border-blue-500/50' : ''
+                                } ${
+                                    !isOccupied ? 'hover:bg-zinc-800/30' : ''
                                 }`}
                                 style={{ height: '60px' }}
                             >
@@ -376,6 +487,15 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     {isWorkHour && isHourMark && (
                                         <div className="absolute top-2 left-2 px-2 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded text-[10px] font-semibold text-blue-400">
                                             WORK HOURS
+                                        </div>
+                                    )}
+                                    {/* Click to add indicator */}
+                                    {!isOccupied && (
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            <div className="flex items-center gap-2 text-gray-500 text-xs">
+                                                <Plus size={14} />
+                                                <span>Click to add block</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -426,9 +546,12 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 whileHover={{ scale: 1.01 }}
-                                className={`absolute left-20 right-0 mx-2 rounded-xl border-2 backdrop-blur-sm cursor-pointer group transition-all overflow-hidden ${
+                                draggable={!block.completed}
+                                onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, block)}
+                                onDragEnd={handleDragEnd}
+                                className={`time-block-item absolute left-20 right-0 mx-2 rounded-xl border-2 backdrop-blur-sm cursor-pointer group transition-all overflow-hidden ${
                                     getBlockTypeStyle(block.block_type, block.completed, isCurrent)
-                                }`}
+                                } ${draggedBlock?.id === block.id ? 'opacity-50' : ''}`}
                                 style={{
                                     top: `${topPosition}px`,
                                     height: `${height}px`,
@@ -457,6 +580,11 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     // Compact layout for short blocks (1 hour or less)
                                     <div className="relative h-full px-3 py-2 flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            {!block.completed && (
+                                                <div className="opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing flex-shrink-0 text-white/50">
+                                                    <GripVertical size={14} />
+                                                </div>
+                                            )}
                                             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                                                 {getBlockIcon(block.block_type, true)}
                                             </div>
@@ -515,6 +643,11 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     <div className="relative h-full p-4 flex flex-col justify-between">
                                         {/* Header */}
                                         <div className="flex items-start gap-3">
+                                            {!block.completed && (
+                                                <div className="opacity-0 group-hover:opacity-50 cursor-grab active:cursor-grabbing flex-shrink-0 text-white/50 pt-2">
+                                                    <GripVertical size={16} />
+                                                </div>
+                                            )}
                                             <div className={`p-2 rounded-lg ${
                                                 isCurrent 
                                                     ? 'bg-white/20' 

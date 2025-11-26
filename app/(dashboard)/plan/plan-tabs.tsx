@@ -156,26 +156,28 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
     return (
         <div className="space-y-8">
             {/* TAB BUTTONS */}
-            <div className="flex p-1 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl">
+            <div className="flex p-1 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl sm:rounded-2xl">
                 <button
                     onClick={() => setActiveTab('quarterly')}
-                    className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${activeTab === 'quarterly'
+                    className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-6 rounded-lg sm:rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base ${activeTab === 'quarterly'
                         ? 'bg-zinc-800 text-white shadow-lg'
                         : 'text-gray-400 hover:text-white'
                         }`}
                 >
-                    <Target size={18} className={activeTab === 'quarterly' ? 'text-blue-400' : ''} />
-                    Quarterly
+                    <Target size={16} className={activeTab === 'quarterly' ? 'text-blue-400' : ''} />
+                    <span className="hidden xs:inline">Quarterly</span>
+                    <span className="xs:hidden">Q</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('weekly')}
-                    className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${activeTab === 'weekly'
+                    className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-6 rounded-lg sm:rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base ${activeTab === 'weekly'
                         ? 'bg-zinc-800 text-white shadow-lg'
                         : 'text-gray-400 hover:text-white'
                         }`}
                 >
-                    <Calendar size={18} className={activeTab === 'weekly' ? 'text-blue-400' : ''} />
-                    This Week
+                    <Calendar size={16} className={activeTab === 'weekly' ? 'text-blue-400' : ''} />
+                    <span className="hidden xs:inline">This Week</span>
+                    <span className="xs:hidden">Week</span>
                 </button>
             </div>
 
@@ -188,20 +190,20 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl p-8"
+                        className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl p-4 sm:p-8"
                     >
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                             <div>
-                                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    <Target className="text-blue-500" size={28} />
+                                <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                                    <Target className="text-blue-500" size={24} />
                                     {quarterDisplay}
                                 </h3>
-                                <p className="text-gray-400 mt-1 ml-10">Strategic Objectives</p>
+                                <p className="text-gray-400 mt-1 ml-8 sm:ml-10 text-sm sm:text-base">Strategic Objectives</p>
                             </div>
                             {!quarterlyPlan && !isCreatingQuarterly && (
                                 <button
                                     onClick={() => setIsCreatingQuarterly(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20 w-full sm:w-auto justify-center"
                                 >
                                     <Plus size={18} /> Create Plan
                                 </button>
@@ -209,7 +211,7 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                             {quarterlyPlan && !isEditingQuarterly && (
                                 <button
                                     onClick={startEditingQuarterly}
-                                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 border border-zinc-700"
+                                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 border border-zinc-700 w-full sm:w-auto justify-center"
                                 >
                                     <Pencil size={16} /> Edit
                                 </button>
@@ -340,22 +342,22 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl p-8"
+                        className="bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl p-4 sm:p-8"
                     >
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                             <div>
-                                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                                    <Calendar className="text-blue-500" size={28} />
+                                <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                                    <Calendar className="text-blue-500" size={24} />
                                     This Week
                                 </h3>
-                                <p className="text-gray-400 mt-1 ml-10">
+                                <p className="text-gray-400 mt-1 ml-8 sm:ml-10 text-sm sm:text-base">
                                     Week of {formatWeekStart(weekStart)}
                                 </p>
                             </div>
                             {!weeklyPlan && !isCreatingWeekly && (
                                 <button
                                     onClick={() => setIsCreatingWeekly(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20 w-full sm:w-auto justify-center"
                                 >
                                     <Plus size={18} /> Create Plan
                                 </button>
@@ -363,7 +365,7 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                             {weeklyPlan && !isEditingWeekly && (
                                 <button
                                     onClick={startEditingWeekly}
-                                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 border border-zinc-700"
+                                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 border border-zinc-700 w-full sm:w-auto justify-center"
                                 >
                                     <Pencil size={16} /> Edit
                                 </button>

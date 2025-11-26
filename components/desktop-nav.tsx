@@ -5,16 +5,16 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Clock, ListTodo, Calendar, MessageSquare, Brain, BookOpen, TrendingUp, HelpCircle } from 'lucide-react'
+import { Clock, MessageSquare, Brain, BookOpen, TrendingUp, BarChart3, HelpCircle } from 'lucide-react'
 import HowToUseModal from './how-to-use-modal'
 
 const navItems = [
-    { name: 'Block', icon: Clock, href: '/block' },
-    { name: 'Queue', icon: ListTodo, href: '/queue' },
-    { name: 'Plan', icon: Calendar, href: '/plan' },
+    { name: 'Home', icon: Brain, href: '/home' },
+    { name: 'Work', icon: Clock, href: '/work' },
     { name: 'Chat', icon: MessageSquare, href: '/chat' },
     { name: 'Notebook', icon: BookOpen, href: '/notebook' },
     { name: 'Behavior', icon: TrendingUp, href: '/behavior' },
+    { name: 'Analytics', icon: BarChart3, href: '/analytics' },
 ]
 
 export default function DesktopNav() {

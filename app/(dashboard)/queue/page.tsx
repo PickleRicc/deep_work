@@ -41,13 +41,13 @@ export default async function QueuePage() {
         .returns<Task[]>()
 
     return (
-        <div className="h-screen flex flex-col pb-24">
-            <div className="px-4 md:px-8 lg:px-12 pt-8 pb-4">
-                <h1 className="text-4xl font-bold text-white">Work Queue</h1>
-                <p className="text-gray-400 mt-1">Pull-based task management</p>
+        <div className="min-h-screen flex flex-col pb-24 md:pb-8">
+            <div className="px-4 md:px-8 lg:px-12 pt-6 md:pt-8 pb-4">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white">Work Queue</h1>
+                <p className="text-gray-400 mt-1 text-sm sm:text-base">Pull-based task management</p>
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-visible md:overflow-hidden">
                 <QueueManager
                     activeTasks={activeTasks || []}
                     queuedTasks={queuedTasks || []}

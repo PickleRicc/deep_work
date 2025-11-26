@@ -6,6 +6,10 @@ import { Timer, Play, Pause, RotateCcw, X, Coffee, Briefcase } from 'lucide-reac
 
 type TimerMode = 'work' | 'shortBreak' | 'longBreak' | 'custom'
 
+interface PomodoroTimerProps {
+    variant?: 'floating' | 'inline'
+}
+
 const TIMER_DURATIONS = {
     work: 25 * 60, // 25 minutes
     shortBreak: 5 * 60, // 5 minutes
@@ -40,7 +44,7 @@ const TIMER_COLORS = {
     },
 }
 
-export default function PomodoroTimer() {
+export default function PomodoroTimer({ variant = 'floating' }: PomodoroTimerProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [mode, setMode] = useState<TimerMode>('work')
     const [timeLeft, setTimeLeft] = useState(TIMER_DURATIONS.work)
@@ -146,18 +150,40 @@ export default function PomodoroTimer() {
 
     return (
         <>
-            {/* Floating Action Button */}
-            <motion.button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 lg:bottom-8 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-2xl shadow-orange-500/30 flex items-center justify-center hover:scale-110 transition-transform"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-            >
-                <Timer size={24} />
-            </motion.button>
+            {/* Inline Button (for Block page header) */}
+            {variant === 'inline' && (
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
+                        isRunning 
+                            ? `bg-gradient-to-r ${colors.primary} text-white shadow-lg`
+                            : 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700'
+                    }`}
+                >
+                    <Timer size={18} />
+                    <span className="font-mono text-sm">
+                        {isRunning ? formatTime(timeLeft) : 'Pomodoro'}
+                    </span>
+                    {isRunning && (
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    )}
+                </button>
+            )}
+
+            {/* Floating Action Button (legacy, only if variant is floating) */}
+            {variant === 'floating' && (
+                <motion.button
+                    onClick={() => setIsOpen(true)}
+                    className="fixed bottom-24 lg:bottom-8 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-2xl shadow-orange-500/30 flex items-center justify-center hover:scale-110 transition-transform"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                >
+                    <Timer size={24} />
+                </motion.button>
+            )}
 
             {/* Timer Modal */}
             <AnimatePresence>

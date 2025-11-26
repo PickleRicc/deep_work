@@ -3,24 +3,25 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
-import { Clock, ListTodo, Calendar, MessageSquare, BookOpen, Network, TrendingUp } from 'lucide-react'
+import { Clock, MessageSquare, Brain, BookOpen, TrendingUp, BarChart3 } from 'lucide-react'
 
 const tabs = [
-    { name: 'Block', icon: Clock, href: '/block' },
-    { name: 'Queue', icon: ListTodo, href: '/queue' },
-    { name: 'Plan', icon: Calendar, href: '/plan' },
+    { name: 'Home', icon: Brain, href: '/home' },
+    { name: 'Work', icon: Clock, href: '/work' },
     { name: 'Chat', icon: MessageSquare, href: '/chat' },
     { name: 'Notes', icon: BookOpen, href: '/notebook' },
     { name: 'Behavior', icon: TrendingUp, href: '/behavior' },
+    { name: 'Analytics', icon: BarChart3, href: '/analytics' },
 ]
 
 export default function BottomNav() {
     const pathname = usePathname()
 
     return (
-        <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[95vw]">
-            <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50 px-1 py-2">
-                <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+        <nav className="lg:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-[72px] z-50">
+            {/* Main Nav Container - leaves space for AI button on right */}
+            <div className="bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 p-1.5">
+                <div className="flex items-center justify-between">
                     {tabs.map((tab) => {
                         const isActive = pathname === tab.href
                         const Icon = tab.icon
@@ -29,50 +30,24 @@ export default function BottomNav() {
                             <Link
                                 key={tab.href}
                                 href={tab.href}
-                                className="relative flex flex-col items-center justify-center min-w-[60px] h-14 rounded-full transition-all duration-300 hover:scale-110 group"
+                                className="relative flex items-center justify-center flex-1 h-10 rounded-xl transition-all duration-200 active:scale-95"
                             >
                                 {isActive && (
-                                    <>
-                                        <motion.div
-                                            layoutId="activeTab"
-                                            className="absolute inset-0 bg-white/10 rounded-full border border-white/5 shadow-lg shadow-blue-500/20"
-                                            transition={{
-                                                type: 'spring',
-                                                stiffness: 380,
-                                                damping: 30,
-                                            }}
-                                        />
-                                        <motion.div
-                                            layoutId="activeGlow"
-                                            className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl"
-                                            transition={{
-                                                type: 'spring',
-                                                stiffness: 380,
-                                                damping: 30,
-                                            }}
-                                        />
-                                    </>
-                                )}
-                                <span className={`relative z-10 transition-all duration-300 ${isActive ? 'text-blue-400' : 'text-gray-400 group-hover:text-gray-200'}`}>
-                                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                                </span>
-                                <span
-                                    className={`text-[9px] font-medium relative z-10 mt-0.5 transition-colors duration-300 ${isActive ? 'text-blue-200' : 'text-gray-500'
-                                        }`}
-                                >
-                                    {tab.name}
-                                </span>
-                                {isActive && (
                                     <motion.div
-                                        layoutId="activeDot"
-                                        className="absolute -bottom-1 w-1 h-1 bg-blue-400 rounded-full shadow-lg shadow-blue-500/50"
+                                        layoutId="activeTab"
+                                        className="absolute inset-0 bg-blue-500/20 rounded-xl border border-blue-500/30"
                                         transition={{
                                             type: 'spring',
-                                            stiffness: 380,
+                                            stiffness: 400,
                                             damping: 30,
                                         }}
                                     />
                                 )}
+                                <span className={`relative z-10 transition-colors duration-200 ${
+                                    isActive ? 'text-blue-400' : 'text-gray-500'
+                                }`}>
+                                    <Icon size={18} strokeWidth={isActive ? 2.5 : 1.5} />
+                                </span>
                             </Link>
                         )
                     })}

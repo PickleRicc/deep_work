@@ -103,15 +103,17 @@ export default function BehaviorManager({ initialBehaviors, initialCheckins }: B
             </div>
 
             {/* Frequency Filter */}
-            <div className="flex items-center gap-3">
-                <Filter size={18} className="text-gray-500" />
-                <span className="text-sm text-gray-500">Filter by frequency:</span>
-                <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
+                    <Filter size={18} className="text-gray-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-500 whitespace-nowrap">Filter:</span>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
                     {['all', 'daily', 'weekly', 'monthly', 'yearly'].map((freq) => (
                         <button
                             key={freq}
                             onClick={() => setFilterFrequency(freq)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                                 filterFrequency === freq
                                     ? 'bg-blue-600 text-white shadow-lg'
                                     : 'bg-zinc-900/50 text-gray-400 hover:text-white'

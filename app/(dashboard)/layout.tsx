@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/bottom-nav'
 import DesktopNav from '@/components/desktop-nav'
 import AppHeader from '@/components/app-header'
-import PomodoroTimer from '@/components/pomodoro-timer'
+import AIChatPanel from '@/components/ai-chat-panel'
+import NotificationScheduler from '@/components/notification-scheduler'
 
 export default async function DashboardLayout({
     children,
@@ -37,8 +38,11 @@ export default async function DashboardLayout({
             {/* Mobile Bottom Navigation */}
             <BottomNav />
 
-            {/* Pomodoro Timer */}
-            <PomodoroTimer />
+            {/* AI Chat Panel */}
+            <AIChatPanel />
+
+            {/* Background notification scheduler */}
+            <NotificationScheduler />
         </div>
     )
 }

@@ -153,23 +153,24 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
                         />
 
-                        {/* Modal */}
+                        {/* Modal - centered on all screen sizes */}
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl pointer-events-auto"
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl pointer-events-auto max-h-[85vh] flex flex-col"
                             >
                                 {/* Header */}
-                                <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                                            <Clock size={20} className="text-blue-400" />
+                                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-zinc-800 flex-shrink-0">
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                                            <Clock size={18} className="text-blue-400" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Work Hours</h2>
-                                            <p className="text-sm text-gray-400">Set your focus time for each day</p>
+                                            <h2 className="text-lg sm:text-xl font-bold text-white">Work Hours</h2>
+                                            <p className="text-xs sm:text-sm text-gray-400">Set your focus time</p>
                                         </div>
                                     </div>
                                     <button
@@ -180,15 +181,15 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                     </button>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+                                {/* Content - scrollable */}
+                                <div className="p-3 sm:p-6 space-y-2 sm:space-y-3 overflow-y-auto flex-1">
                                     {workHours.map((wh, index) => {
                                         const day = DAYS_OF_WEEK[wh.day_of_week]
                                         const isShowingCopyModal = copyFromDay === index
                                         return (
                                             <div key={wh.day_of_week} className="relative">
                                                 <div 
-                                                    className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
+                                                    className={`flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg border transition-colors ${
                                                         wh.is_enabled
                                                             ? 'bg-zinc-900/50 border-zinc-800'
                                                             : 'bg-zinc-950/50 border-zinc-800/50 opacity-60'
@@ -196,7 +197,7 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                                 >
                                                     <button
                                                         onClick={() => handleToggleDay(index)}
-                                                        className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${
+                                                        className={`w-5 h-5 rounded border transition-colors flex items-center justify-center flex-shrink-0 ${
                                                             wh.is_enabled
                                                                 ? 'bg-blue-600 border-blue-600'
                                                                 : 'bg-transparent border-zinc-700'
@@ -209,34 +210,34 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                                         )}
                                                     </button>
 
-                                                    <div className="w-20 font-medium text-white">
-                                                        {day.label}
+                                                    <div className="w-12 sm:w-20 font-medium text-white text-sm sm:text-base flex-shrink-0">
+                                                        {day.short}
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 flex-1">
+                                                    <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
                                                         <input
                                                             type="time"
                                                             value={wh.start_time.substring(0, 5)}
                                                             onChange={(e) => handleTimeChange(index, 'start_time', e.target.value)}
                                                             disabled={!wh.is_enabled}
-                                                            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                                            className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
                                                         />
-                                                        <span className="text-gray-500">to</span>
+                                                        <span className="text-gray-500 text-xs sm:text-sm">-</span>
                                                         <input
                                                             type="time"
                                                             value={wh.end_time.substring(0, 5)}
                                                             onChange={(e) => handleTimeChange(index, 'end_time', e.target.value)}
                                                             disabled={!wh.is_enabled}
-                                                            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                                            className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-blue-500 disabled:opacity-50"
                                                         />
                                                     </div>
 
                                                     <button
                                                         onClick={() => setCopyFromDay(isShowingCopyModal ? null : index)}
-                                                        className="p-2 text-gray-400 hover:text-blue-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                                                        className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-400 hover:bg-zinc-800 rounded-lg transition-colors flex-shrink-0"
                                                         title="Copy to other days"
                                                     >
-                                                        <Copy size={16} />
+                                                        <Copy size={14} />
                                                     </button>
                                                 </div>
 
@@ -245,21 +246,20 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                                     <motion.div
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 0 }}
-                                                        className="absolute top-full left-0 right-0 mt-2 p-4 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-10"
+                                                        className="absolute top-full left-0 right-0 mt-2 p-3 sm:p-4 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-10"
                                                     >
                                                         <div className="mb-3">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <p className="text-sm font-medium text-white">Copy {day.label}'s hours to:</p>
+                                                            <div className="flex items-center justify-between mb-2 gap-2">
+                                                                <p className="text-xs sm:text-sm font-medium text-white">Copy to:</p>
                                                                 <div className="flex gap-2">
                                                                     <button
                                                                         onClick={() => {
-                                                                            // Select all weekdays (Mon-Fri, indices 1-5) except current
                                                                             const weekdayIndices = [1, 2, 3, 4, 5].filter(idx => idx !== index)
                                                                             setSelectedDaysToCopy(weekdayIndices)
                                                                         }}
                                                                         className="text-xs text-blue-400 hover:text-blue-300 underline"
                                                                     >
-                                                                        Select Mon-Fri
+                                                                        Mon-Fri
                                                                     </button>
                                                                     {selectedDaysToCopy.length > 0 && (
                                                                         <button
@@ -271,22 +271,22 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div className="space-y-2">
+                                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                                                 {workHours.map((targetWh, targetIndex) => {
                                                                     if (targetIndex === index) return null
                                                                     const targetDay = DAYS_OF_WEEK[targetWh.day_of_week]
                                                                     return (
                                                                         <label
                                                                             key={targetIndex}
-                                                                            className="flex items-center gap-2 text-sm text-gray-300 hover:text-white cursor-pointer"
+                                                                            className="flex items-center gap-2 text-xs sm:text-sm text-gray-300 hover:text-white cursor-pointer"
                                                                         >
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={selectedDaysToCopy.includes(targetIndex)}
                                                                                 onChange={() => toggleDayToCopy(targetIndex)}
-                                                                                className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-blue-600 focus:ring-blue-500"
+                                                                                className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-700 text-blue-600 focus:ring-blue-500"
                                                                             />
-                                                                            {targetDay.label}
+                                                                            {targetDay.short}
                                                                         </label>
                                                                     )
                                                                 })}
@@ -300,16 +300,16 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                                                     }
                                                                 }}
                                                                 disabled={selectedDaysToCopy.length === 0}
-                                                                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white text-sm rounded-lg transition-colors"
+                                                                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white text-xs sm:text-sm rounded-lg transition-colors"
                                                             >
-                                                                Apply to {selectedDaysToCopy.length} day{selectedDaysToCopy.length !== 1 ? 's' : ''}
+                                                                Apply ({selectedDaysToCopy.length})
                                                             </button>
                                                             <button
                                                                 onClick={() => {
                                                                     setCopyFromDay(null)
                                                                     setSelectedDaysToCopy([])
                                                                 }}
-                                                                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-gray-300 text-sm rounded-lg transition-colors"
+                                                                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 text-gray-300 text-xs sm:text-sm rounded-lg transition-colors"
                                                             >
                                                                 Cancel
                                                             </button>
@@ -322,21 +322,21 @@ export default function WorkHoursConfig({ userId }: WorkHoursConfigProps) {
                                 </div>
 
                                 {/* Footer */}
-                                <div className="flex items-center justify-end gap-3 p-6 border-t border-zinc-800">
+                                <div className="flex items-center justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-zinc-800 flex-shrink-0">
                                     <button
                                         onClick={() => setIsOpen(false)}
                                         disabled={isSaving}
-                                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded-lg transition-colors"
+                                        className="px-3 sm:px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded-lg transition-colors text-sm"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSave}
                                         disabled={isSaving}
-                                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                                        className="px-4 sm:px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white rounded-lg transition-colors font-medium flex items-center gap-2 shadow-lg shadow-blue-500/20 text-sm"
                                     >
-                                        <Save size={16} />
-                                        {isSaving ? 'Saving...' : 'Save Work Hours'}
+                                        <Save size={14} />
+                                        {isSaving ? 'Saving...' : 'Save'}
                                     </button>
                                 </div>
                             </motion.div>
