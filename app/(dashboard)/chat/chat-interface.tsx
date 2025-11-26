@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Bot, Send, Sparkles, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import IntakeQuestionnaire from '@/components/intake-questionnaire'
+import { useAI } from '@/contexts/ai-context'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -20,6 +21,7 @@ const quickActions = [
 
 export default function ChatInterface() {
     const supabase = createClient()
+    const { aiName, refreshAIName } = useAI()
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
@@ -228,7 +230,7 @@ export default function ChatInterface() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask Claude..."
+                        placeholder={`Ask ${aiName}...`}
                         rows={1}
                         className="flex-1 bg-zinc-800/80 backdrop-blur-sm border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none transition-all"
                         disabled={loading}

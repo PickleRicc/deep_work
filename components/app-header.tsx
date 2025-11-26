@@ -8,12 +8,12 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import HowToUseModal from './how-to-use-modal'
+import { useAI } from '@/contexts/ai-context'
 
-const pageNames: Record<string, string> = {
+const staticPageNames: Record<string, string> = {
     '/block': 'Time Blocking',
     '/queue': 'Work Queue',
     '/plan': 'Planning',
-    '/chat': 'AI Assistant',
     '/notebook': 'Notebook',
     '/behavior': 'Behavior Tracking',
 }
@@ -33,6 +33,7 @@ export default function AppHeader() {
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
+    const { aiName } = useAI()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [quotesEnabled, setQuotesEnabled] = useState(true)
     const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0)
@@ -63,7 +64,10 @@ export default function AppHeader() {
         localStorage.setItem('quotesEnabled', String(newValue))
     }
 
-    const pageName = pageNames[pathname] || 'Deep Work'
+    // Dynamic page name - use AI name for chat page
+    const pageName = pathname === '/chat' 
+        ? `${aiName} Assistant` 
+        : (staticPageNames[pathname] || 'Deep Work')
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -71,8 +75,11 @@ export default function AppHeader() {
     }
 
     return (
-        <header className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-xl">
-            <div className="flex h-16 items-center justify-between px-4 md:px-8 lg:px-12">
+        <header 
+            className="sticky top-0 z-40 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-xl"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+            <div className="flex h-14 sm:h-16 items-center justify-between px-4 md:px-8 lg:px-12">
                 {/* Logo and App Name */}
                 <div className="flex items-center gap-4">
                     <motion.div

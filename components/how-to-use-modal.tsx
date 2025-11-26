@@ -15,6 +15,7 @@ import {
     Lightbulb,
     Target
 } from 'lucide-react'
+import { useAI } from '@/contexts/ai-context'
 
 interface Feature {
     icon: any
@@ -52,8 +53,8 @@ const features: Feature[] = [
     },
     {
         icon: MessageSquare,
-        title: 'AI Assistant',
-        description: 'Chat with an AI that has full context of your schedule, tasks, notes, and behaviors. Get personalized insights.',
+        title: '{AI_NAME} Assistant',
+        description: 'Chat with your AI that has full context of your schedule, tasks, notes, and behaviors. Get personalized insights.',
         howTo: 'Ask questions about your productivity, get suggestions for time allocation, request help organizing your work, or explore connections between your notes and concepts.',
         inspiration: 'Having an intelligent assistant that understands your entire workflow helps you make better decisions and spot patterns you might miss. It can help you avoid pseudo-productivity (appearing busy without being effective) and identify when you\'re experiencing cognitive disorder from too much context switching.',
         inspirationFrom: 'AI-Augmented Deep Work'
@@ -108,7 +109,14 @@ interface HowToUseModalProps {
 }
 
 export default function HowToUseModal({ isOpen, onClose }: HowToUseModalProps) {
+    const { aiName } = useAI()
     const [activeTab, setActiveTab] = useState<'features' | 'principles'>('features')
+    
+    // Replace AI name placeholder in features
+    const dynamicFeatures = features.map(f => ({
+        ...f,
+        title: f.title.replace('{AI_NAME}', aiName)
+    }))
 
     return (
         <AnimatePresence>
@@ -185,7 +193,7 @@ export default function HowToUseModal({ isOpen, onClose }: HowToUseModalProps) {
                             <div className="flex-1 overflow-y-auto p-6">
                                 {activeTab === 'features' ? (
                                     <div className="space-y-6">
-                                        {features.map((feature, index) => (
+                                        {dynamicFeatures.map((feature, index) => (
                                             <motion.div
                                                 key={feature.title}
                                                 initial={{ opacity: 0, y: 20 }}

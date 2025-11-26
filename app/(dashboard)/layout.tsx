@@ -5,6 +5,7 @@ import DesktopNav from '@/components/desktop-nav'
 import AppHeader from '@/components/app-header'
 import AIChatPanel from '@/components/ai-chat-panel'
 import NotificationScheduler from '@/components/notification-scheduler'
+import { Providers } from '@/components/providers'
 
 export default async function DashboardLayout({
     children,
@@ -20,29 +21,31 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="min-h-screen">
-            {/* Desktop Sidebar Navigation */}
-            <DesktopNav />
-            
-            {/* Main Content Area */}
-            <div className="lg:ml-64">
-                {/* App Header */}
-                <AppHeader />
+        <Providers>
+            <div className="min-h-screen">
+                {/* Desktop Sidebar Navigation */}
+                <DesktopNav />
                 
-                {/* Page Content */}
-                <div className="pb-24 lg:pb-8">
-                    {children}
+                {/* Main Content Area */}
+                <div className="lg:ml-64">
+                    {/* App Header */}
+                    <AppHeader />
+                    
+                    {/* Page Content - Extra padding for iOS dock */}
+                    <div className="pb-28 lg:pb-8" style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
+                        {children}
+                    </div>
                 </div>
+
+                {/* Mobile Bottom Navigation */}
+                <BottomNav />
+
+                {/* AI Chat Panel */}
+                <AIChatPanel />
+
+                {/* Background notification scheduler */}
+                <NotificationScheduler />
             </div>
-
-            {/* Mobile Bottom Navigation */}
-            <BottomNav />
-
-            {/* AI Chat Panel */}
-            <AIChatPanel />
-
-            {/* Background notification scheduler */}
-            <NotificationScheduler />
-        </div>
+        </Providers>
     )
 }

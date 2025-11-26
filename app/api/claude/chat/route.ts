@@ -24,11 +24,16 @@ async function buildContext(userId: string, supabase: any) {
     const currentTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 
     // Get user profile
-    const { data: userProfile } = await supabase
+    const { data: userProfile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
         .single()
+    
+    if (profileError && profileError.code !== 'PGRST116') {
+        console.log('Error fetching user profile:', profileError)
+    }
+    console.log('User profile loaded:', userProfile ? 'Yes' : 'No', userProfile?.intake_completed ? '(intake completed)' : '(intake not completed)')
 
     // Get most recent quarterly plan
     const { data: quarterlyPlans } = await supabase

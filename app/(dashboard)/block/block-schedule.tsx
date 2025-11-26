@@ -25,6 +25,7 @@ import {
     ListTodo,
     GripVertical
 } from 'lucide-react'
+import { useAI } from '@/contexts/ai-context'
 
 interface BlockScheduleProps {
     blocks: TimeBlock[]
@@ -36,6 +37,7 @@ interface BlockScheduleProps {
 export default function BlockSchedule({ blocks, selectedDate, activeTasks, workHours }: BlockScheduleProps) {
     const router = useRouter()
     const supabase = createClient()
+    const { aiName } = useAI()
     const [completingBlockId, setCompletingBlockId] = useState<string | null>(null)
     const [currentTime, setCurrentTime] = useState('')
     const [draggedBlock, setDraggedBlock] = useState<TimeBlock | null>(null)
@@ -430,7 +432,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                             href="/chat"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-blue-900/20 flex items-center gap-2"
                         >
-                            <Briefcase size={18} /> Ask Claude to Plan
+                            <Briefcase size={18} /> Ask {aiName} to Plan
                         </Link>
                     </div>
                 </motion.div>

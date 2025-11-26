@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Bot, Send, Sparkles, X, Minimize2, Maximize2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import IntakeQuestionnaire from '@/components/intake-questionnaire'
+import { useAI } from '@/contexts/ai-context'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -20,6 +21,7 @@ const quickActions = [
 
 export default function AIChatPanel() {
     const supabase = createClient()
+    const { aiName, refreshAIName } = useAI()
     const [isOpen, setIsOpen] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [messages, setMessages] = useState<Message[]>([])
@@ -28,7 +30,6 @@ export default function AIChatPanel() {
     const [showIntake, setShowIntake] = useState(false)
     const [hasProfile, setHasProfile] = useState<boolean | null>(null)
     const [userName, setUserName] = useState<string>('')
-    const [aiName, setAiName] = useState<string>('AI')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -40,13 +41,12 @@ export default function AIChatPanel() {
 
             const { data: profile } = await supabase
                 .from('user_profiles')
-                .select('intake_completed, display_name, ai_name')
+                .select('intake_completed, display_name')
                 .eq('user_id', user.id)
                 .single()
 
             setHasProfile(profile?.intake_completed || false)
             setUserName(profile?.display_name || '')
-            setAiName(profile?.ai_name || 'AI')
         }
         checkProfile()
     }, [])
@@ -120,18 +120,31 @@ export default function AIChatPanel() {
                 }}
             />
 
-            {/* Floating Action Button - next to nav on mobile, bottom-right on desktop */}
+            {/* Floating Action Button - Desktop only (mobile uses dock) */}
             <motion.button
                 onClick={() => setIsOpen(true)}
-                className="fixed z-40 flex items-center justify-center transition-transform
-                    bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-xl shadow-blue-500/20
-                    lg:bottom-8 lg:right-6 lg:w-14 lg:h-14 lg:rounded-full lg:shadow-2xl lg:shadow-blue-500/30 lg:hover:scale-110"
+                className="hidden lg:flex fixed z-40 items-center justify-center transition-transform
+                    bottom-8 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-2xl shadow-blue-500/30 hover:scale-110"
                 whileTap={{ scale: 0.95 }}
                 initial={{ scale: 0 }}
                 animate={{ scale: isOpen ? 0 : 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20 }}
             >
-                <Bot size={20} className="lg:w-6 lg:h-6" />
+                <Bot size={24} />
+            </motion.button>
+            
+            {/* Mobile FAB - Positioned above dock */}
+            <motion.button
+                onClick={() => setIsOpen(true)}
+                className="lg:hidden fixed z-40 flex items-center justify-center
+                    right-4 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-xl shadow-blue-500/30"
+                style={{ bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+                whileTap={{ scale: 0.9 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: isOpen ? 0 : 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            >
+                <Bot size={22} />
             </motion.button>
 
             {/* Chat Panel */}
@@ -153,9 +166,14 @@ export default function AIChatPanel() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: '100%', opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className={`fixed right-0 top-0 h-full z-50 bg-zinc-900 border-l border-zinc-800 shadow-2xl flex flex-col ${
+                            className={`fixed right-0 top-0 z-50 bg-zinc-900 border-l border-zinc-800 shadow-2xl flex flex-col ${
                                 isExpanded ? 'w-full lg:w-[600px]' : 'w-full lg:w-[400px]'
                             }`}
+                            style={{ 
+                                height: '100%',
+                                paddingTop: 'env(safe-area-inset-top)',
+                                paddingBottom: 'env(safe-area-inset-bottom)'
+                            }}
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-gradient-to-r from-blue-500/10 to-purple-500/10">

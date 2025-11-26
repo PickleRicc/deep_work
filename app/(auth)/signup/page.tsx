@@ -39,7 +39,13 @@ export default function SignupPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div 
+            className="min-h-screen bg-black flex items-center justify-center p-4"
+            style={{ 
+                paddingTop: 'max(env(safe-area-inset-top), 16px)',
+                paddingBottom: 'max(env(safe-area-inset-bottom), 16px)'
+            }}
+        >
             <div className="w-full max-w-md">
                 <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8">
                     <h1 className="text-2xl font-bold text-white mb-2">Create an account</h1>

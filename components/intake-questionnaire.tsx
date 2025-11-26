@@ -141,26 +141,33 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
 
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+            if (!user) {
+                console.error('No user found')
+                return
+            }
 
-            await supabase.from('user_profiles').upsert({
+            console.log('Saving profile for user:', user.id)
+
+            const profileData = {
                 user_id: user.id,
                 display_name: displayName || null,
                 work_style: workStyle || null,
                 preferred_work_duration: preferredWorkDuration,
                 preferred_break_duration: preferredBreakDuration,
                 chronotype: chronotype || null,
-                peak_hours_start: peakHoursStart,
-                peak_hours_end: peakHoursEnd,
+                peak_hours_start: peakHoursStart + ':00',
+                peak_hours_end: peakHoursEnd + ':00',
                 employment_type: employmentType || null,
                 has_fixed_schedule: hasFixedSchedule,
-                typical_work_start: typicalWorkStart,
-                typical_work_end: typicalWorkEnd,
+                typical_work_start: typicalWorkStart + ':00',
+                typical_work_end: typicalWorkEnd + ':00',
                 motivations: motivations.length > 0 ? motivations : null,
                 goals_short_term: goalsShortTerm || null,
                 goals_long_term: goalsLongTerm || null,
                 has_caregiving_responsibilities: hasCaregiving,
-                health_considerations: healthConsiderations.filter(h => h !== 'none'),
+                health_considerations: healthConsiderations.filter(h => h !== 'none').length > 0 
+                    ? healthConsiderations.filter(h => h !== 'none') 
+                    : null,
                 accommodation_preferences: accommodationPreferences || null,
                 reminder_style: reminderStyle,
                 ai_name: aiName || 'Claude',
@@ -172,13 +179,28 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
                 notify_before_block: 5,
                 intake_completed: true,
                 intake_completed_at: new Date().toISOString(),
-            }, {
-                onConflict: 'user_id'
-            })
+            }
 
+            console.log('Profile data to save:', profileData)
+
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .upsert(profileData, {
+                    onConflict: 'user_id'
+                })
+                .select()
+
+            if (error) {
+                console.error('Supabase error saving profile:', error)
+                alert(`Error saving profile: ${error.message}`)
+                return
+            }
+
+            console.log('Profile saved successfully:', data)
             onComplete()
         } catch (error) {
             console.error('Error saving profile:', error)
+            alert('An error occurred while saving your profile. Please try again.')
         } finally {
             setIsSaving(false)
         }

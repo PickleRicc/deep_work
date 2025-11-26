@@ -17,6 +17,7 @@ import {
     Sparkles,
     Layout
 } from 'lucide-react'
+import { useAI } from '@/contexts/ai-context'
 
 interface PlanTabsProps {
     quarterlyPlan: QuarterlyPlan | null
@@ -28,6 +29,7 @@ interface PlanTabsProps {
 type TabType = 'quarterly' | 'weekly'
 
 export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart }: PlanTabsProps) {
+    const { aiName } = useAI()
     const router = useRouter()
     const supabase = createClient()
     const [activeTab, setActiveTab] = useState<TabType>('quarterly')
@@ -330,7 +332,7 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                                     href="/chat"
                                     className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-lg shadow-blue-900/20"
                                 >
-                                    <Sparkles size={18} /> Ask Claude to Create Plan
+                                    <Sparkles size={18} /> Ask {aiName} to Create Plan
                                 </Link>
                             </div>
                         )}
@@ -435,7 +437,7 @@ export function PlanTabs({ quarterlyPlan, weeklyPlan, currentQuarter, weekStart 
                                     href="/chat"
                                     className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors shadow-lg shadow-blue-900/20"
                                 >
-                                    <Sparkles size={18} /> Ask Claude to Create Plan
+                                    <Sparkles size={18} /> Ask {aiName} to Create Plan
                                 </Link>
                             </div>
                         )}
