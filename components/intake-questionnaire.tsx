@@ -223,15 +223,22 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            style={{ 
+                paddingTop: 'max(env(safe-area-inset-top), 16px)',
+                paddingBottom: 'max(env(safe-area-inset-bottom), 16px)'
+            }}
+        >
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col"
+                style={{ maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)' }}
             >
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-zinc-800 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+                {/* Header - Fixed at top */}
+                <div className="flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b border-zinc-800 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
@@ -263,8 +270,8 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                {/* Content - Scrollable */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
                     <AnimatePresence mode="wait">
                         {/* Step 0: Welcome */}
                         {step === 0 && (
@@ -743,8 +750,8 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
                     </AnimatePresence>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/50">
+                {/* Footer - Always visible */}
+                <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-t border-zinc-800 bg-zinc-900">
                     <button
                         onClick={() => setStep(Math.max(0, step - 1))}
                         disabled={step === 0}
