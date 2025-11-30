@@ -5,6 +5,7 @@ import CurrentBlockCard from './current-block-card'
 import TaskQueueCard from './task-queue-card'
 import FocusStatsCard from './focus-stats-card'
 import WeeklyPlanCard from './weekly-plan-card'
+import PageQuotes, { homeQuotes } from '@/components/page-quotes'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { getLocalDateString } from '@/lib/utils/date'
@@ -117,6 +118,9 @@ export default async function HomePage() {
                     {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </p>
             </div>
+
+            {/* Motivational Quotes */}
+            <PageQuotes quotes={homeQuotes} />
 
             {/* Top Row - Current Block */}
             <CurrentBlockCard

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Behavior, BehaviorCheckin } from '@/lib/types/database'
 import BehaviorManager from './behavior-manager'
+import PageQuotes, { behaviorQuotes } from '@/components/page-quotes'
 import { getLocalDateString } from '@/lib/utils/date'
 
 export default async function BehaviorPage() {
@@ -39,6 +40,9 @@ export default async function BehaviorPage() {
                 <h1 className="text-2xl sm:text-4xl font-bold text-white">Behavior Tracking</h1>
                 <p className="text-gray-400 mt-1 text-sm sm:text-base">Understand what rewards you</p>
             </div>
+
+            {/* Motivational Quotes */}
+            <PageQuotes quotes={behaviorQuotes} />
 
             <BehaviorManager 
                 initialBehaviors={behaviors || []}

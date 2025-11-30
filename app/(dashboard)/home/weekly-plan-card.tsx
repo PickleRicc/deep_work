@@ -61,3 +61,4 @@ export default function WeeklyPlanCard({ weeklyPlan }: WeeklyPlanCardProps) {
     )
 }
 
+

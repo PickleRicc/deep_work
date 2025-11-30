@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
+import { TimeBlock, Task, UserWorkHours, Project } from '@/lib/types/database'
 import ActiveProjects from './active-projects'
 import BlockSchedule from './block-schedule'
 import WorkHoursConfig from './work-hours-config'
@@ -57,6 +57,15 @@ export default async function BlockPage({
         .order('day_of_week')
         .returns<UserWorkHours[]>()
 
+    // Fetch active projects
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .returns<Project[]>()
+
     return (
         <div className="space-y-6 md:space-y-8 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-6xl mx-auto">
             <div className="flex flex-col gap-4">
@@ -79,6 +88,7 @@ export default async function BlockPage({
                 selectedDate={selectedDate}
                 activeTasks={activeTasks || []}
                 workHours={workHours || []}
+                projects={projects || []}
             />
         </div>
     )

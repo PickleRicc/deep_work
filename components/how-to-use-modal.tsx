@@ -142,7 +142,7 @@ export default function HowToUseModal({ isOpen, onClose }: HowToUseModalProps) {
                             {/* Header */}
                             <div className="flex items-center justify-between p-6 border-b border-zinc-800 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">How to Use Deep Work</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-1">How to Use Yinsen</h2>
                                     <p className="text-gray-400 text-sm">Master your focus, build your knowledge</p>
                                 </div>
                                 <button
@@ -237,8 +237,8 @@ export default function HowToUseModal({ isOpen, onClose }: HowToUseModalProps) {
                                         <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl p-6">
                                             <h3 className="text-xl font-bold text-white mb-3">Core Philosophy</h3>
                                             <p className="text-gray-300 leading-relaxed mb-3">
-                                                Deep Work is built on the belief that focused, undistracted work is becoming increasingly rare 
-                                                and increasingly valuable. This app helps you cultivate the ability to focus without distraction, 
+                                                Yinsen is built on the philosophy that you shouldn't waste your life. This app helps you build 
+                                                something meaningful by cultivating the ability to focus without distraction, 
                                                 build a knowledge base that compounds over time, and understand what behaviors truly serve your goals.
                                             </p>
                                             <p className="text-gray-300 leading-relaxed">

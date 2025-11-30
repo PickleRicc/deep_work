@@ -1,6 +1,6 @@
 'use client'
 
-import { TimeBlock, Task, UserWorkHours } from '@/lib/types/database'
+import { TimeBlock, Task, UserWorkHours, Project } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
@@ -33,9 +33,10 @@ interface BlockScheduleProps {
     selectedDate: string
     activeTasks: Task[]
     workHours: UserWorkHours[]
+    projects: Project[]
 }
 
-export default function BlockSchedule({ blocks, selectedDate, activeTasks, workHours }: BlockScheduleProps) {
+export default function BlockSchedule({ blocks, selectedDate, activeTasks, workHours, projects }: BlockScheduleProps) {
     const router = useRouter()
     const supabase = createClient()
     const { aiName } = useAI()
@@ -69,6 +70,8 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
     const [taskTitle, setTaskTitle] = useState('')
     const [blockDate, setBlockDate] = useState(selectedDate)
     const [taskId, setTaskId] = useState<string>('')
+    const [projectId, setProjectId] = useState<string>('')
+    const [taskSource, setTaskSource] = useState<'none' | 'from_queue' | 'custom'>('none')
 
     // Calculate visible hours based on work hours for the selected date
     const getVisibleHours = () => {
@@ -143,6 +146,8 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
         setTaskTitle('')
         setBlockDate(selectedDate)
         setTaskId('')
+        setProjectId('')
+        setTaskSource('none')
         setIsModalOpen(true)
     }
 
@@ -248,6 +253,17 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
         setTaskTitle(block.task_title || '')
         setBlockDate(block.date)
         setTaskId(block.task_id || '')
+        setProjectId(block.project_id || '')
+        
+        // Determine task source based on existing data
+        if (block.task_id) {
+            setTaskSource('from_queue')
+        } else if (block.task_title) {
+            setTaskSource('custom')
+        } else {
+            setTaskSource('none')
+        }
+        
         setIsModalOpen(true)
     }
 
@@ -260,9 +276,10 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
             start_time: startTime,
             end_time: endTime,
             block_type: blockType,
-            task_title: taskTitle,
+            task_title: taskTitle || null,
             date: blockDate,
             task_id: taskId || null,
+            project_id: projectId || null,
         }
 
         if (editingBlock) {
@@ -983,16 +1000,16 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">LINKED PROJECT (OPTIONAL)</label>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">PROJECT (OPTIONAL)</label>
                                     <select
-                                        value={taskId}
-                                        onChange={(e) => setTaskId(e.target.value)}
+                                        value={projectId}
+                                        onChange={(e) => setProjectId(e.target.value)}
                                         className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none"
                                     >
-                                        <option value="">No linked project</option>
-                                        {activeTasks.map((task) => (
-                                            <option key={task.id} value={task.id}>
-                                                {task.title}
+                                        <option value="">No project</option>
+                                        {projects.map((project) => (
+                                            <option key={project.id} value={project.id}>
+                                                {project.project_name}
                                             </option>
                                         ))}
                                     </select>
@@ -1000,14 +1017,63 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
 
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 mb-1.5">TASK</label>
-                                    <input
-                                        type="text"
-                                        placeholder="What are you working on?"
-                                        value={taskTitle}
-                                        onChange={(e) => setTaskTitle(e.target.value)}
-                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                                    />
+                                    <select
+                                        value={taskSource}
+                                        onChange={(e) => {
+                                            const value = e.target.value as 'none' | 'from_queue' | 'custom'
+                                            setTaskSource(value)
+                                            if (value === 'none') {
+                                                setTaskTitle('')
+                                                setTaskId('')
+                                            }
+                                        }}
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none"
+                                    >
+                                        <option value="none">No task</option>
+                                        <option value="from_queue">Select from active queue</option>
+                                        <option value="custom">Enter custom task</option>
+                                    </select>
                                 </div>
+
+                                {taskSource === 'from_queue' && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1.5">SELECT TASK</label>
+                                        <select
+                                            value={taskId}
+                                            onChange={(e) => {
+                                                setTaskId(e.target.value)
+                                                const selectedTask = activeTasks.find(t => t.id === e.target.value)
+                                                if (selectedTask) {
+                                                    setTaskTitle(selectedTask.title)
+                                                }
+                                            }}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none"
+                                        >
+                                            <option value="">Choose a task...</option>
+                                            {activeTasks.map((task) => (
+                                                <option key={task.id} value={task.id}>
+                                                    {task.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {taskSource === 'custom' && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1.5">TASK DESCRIPTION</label>
+                                        <input
+                                            type="text"
+                                            placeholder="What are you working on?"
+                                            value={taskTitle}
+                                            onChange={(e) => {
+                                                setTaskTitle(e.target.value)
+                                                setTaskId('') // Clear task ID for custom tasks
+                                            }}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="flex gap-3 pt-4">
                                     <button
@@ -1018,7 +1084,7 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
                                     </button>
                                     <button
                                         onClick={handleSubmit}
-                                        disabled={!taskTitle.trim()}
+                                        disabled={taskSource !== 'none' && !taskTitle.trim()}
                                         className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-blue-900/20"
                                     >
                                         {editingBlock ? 'Save Changes' : 'Add Block'}

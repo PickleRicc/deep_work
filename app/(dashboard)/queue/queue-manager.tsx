@@ -19,6 +19,9 @@ import {
     AlignLeft,
     Folder
 } from 'lucide-react'
+import { useReviewPrompt } from '@/hooks/use-review-prompt'
+import ReviewModal from '@/components/review-modal'
+import TagSelector from '@/components/tag-selector'
 
 interface QueueManagerProps {
     activeTasks: Task[]
@@ -30,21 +33,27 @@ interface QueueManagerProps {
 export default function QueueManager({ activeTasks, queuedTasks, completedTasks, projects }: QueueManagerProps) {
     const router = useRouter()
     const supabase = createClient()
+    const { addPendingReview, showReviewModal, currentReview, skipReview, completeReview } = useReviewPrompt()
+    
     const [isPulling, setIsPulling] = useState(false)
     const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
     const [isAddingTask, setIsAddingTask] = useState(false)
     const [newTaskTitle, setNewTaskTitle] = useState('')
     const [newTaskNotes, setNewTaskNotes] = useState('')
     const [newTaskProjectId, setNewTaskProjectId] = useState('')
+    const [newTaskTags, setNewTaskTags] = useState<string[]>([])
 
     // Edit State
     const [editingTask, setEditingTask] = useState<Task | null>(null)
     const [editTitle, setEditTitle] = useState('')
     const [editNotes, setEditNotes] = useState('')
     const [editProjectId, setEditProjectId] = useState('')
+    const [editTags, setEditTags] = useState<string[]>([])
 
     const handleCompleteTask = async (taskId: string) => {
         setCompletingTaskId(taskId)
+
+        const completedTask = activeTasks.find(t => t.id === taskId)
 
         await supabase
             .from('tasks')
@@ -58,6 +67,11 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
         setTimeout(() => {
             router.refresh()
             setCompletingTaskId(null)
+            
+            // Trigger review prompt if task was found
+            if (completedTask) {
+                addPendingReview(completedTask, 'task')
+            }
         }, 300)
     }
 
@@ -125,6 +139,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
                 title: newTaskTitle,
                 notes: newTaskNotes || null,
                 project_id: newTaskProjectId || null,
+                tags: newTaskTags.length > 0 ? newTaskTags : null,
                 status: 'backlog',
                 queue_position: maxPosition + 1
             })
@@ -132,6 +147,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
         setNewTaskTitle('')
         setNewTaskNotes('')
         setNewTaskProjectId('')
+        setNewTaskTags([])
         setIsAddingTask(false)
         router.refresh()
     }
@@ -152,6 +168,7 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
         setEditTitle(task.title)
         setEditNotes(task.notes || '')
         setEditProjectId(task.project_id || '')
+        setEditTags(task.tags || [])
     }
 
     const handleUpdateTask = async () => {
@@ -162,7 +179,8 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
             .update({
                 title: editTitle,
                 notes: editNotes || null,
-                project_id: editProjectId || null
+                project_id: editProjectId || null,
+                tags: editTags.length > 0 ? editTags : null
             })
             .eq('id', editingTask.id)
 
@@ -241,6 +259,13 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
                                             <option key={project.id} value={project.id}>{project.project_name}</option>
                                         ))}
                                     </select>
+                                </div>
+                                <div className="text-xs">
+                                    <TagSelector
+                                        selectedTags={newTaskTags}
+                                        onChange={setNewTaskTags}
+                                        label="Tags (Optional)"
+                                    />
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -519,6 +544,11 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
                                         </select>
                                     </div>
                                 </div>
+                                <TagSelector
+                                    selectedTags={editTags}
+                                    onChange={setEditTags}
+                                    label="Tags (Optional)"
+                                />
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         onClick={() => setEditingTask(null)}
@@ -539,6 +569,16 @@ export default function QueueManager({ activeTasks, queuedTasks, completedTasks,
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* REVIEW MODAL */}
+            {showReviewModal && currentReview && (
+                <ReviewModal
+                    item={currentReview.item}
+                    itemType={currentReview.itemType}
+                    onClose={skipReview}
+                    onSubmit={() => completeReview(currentReview.item)}
+                />
+            )}
         </div>
     )
 }

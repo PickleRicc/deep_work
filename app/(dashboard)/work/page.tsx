@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan, Project } from '@/lib/types/database'
 import WorkTabs from './work-tabs'
 import { getLocalDateString } from '@/lib/utils/date'
+import { workQuotes } from '@/components/page-quotes'
 
 export default async function WorkPage({
     searchParams,
@@ -158,6 +159,8 @@ export default async function WorkPage({
             allWeeklyPlans={allWeeklyPlans || []}
             // Initial tab
             initialTab={params.tab || 'block'}
+            // Quotes
+            quotes={workQuotes}
         />
     )
 }

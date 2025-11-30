@@ -28,18 +28,67 @@ interface ActionExecuted {
 // Helper: Build context for Claude
 async function buildContext(userId: string, supabase: any, userTimezone?: string) {
     const now = new Date()
-    // Get local date (handles timezone properly)
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const today = `${year}-${month}-${day}`
     
-    // Get current time in 12-hour format
-    const hours = now.getHours()
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    const period = hours >= 12 ? 'PM' : 'AM'
-    const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
-    const currentTime = `${hour12}:${minutes} ${period}`
+    // If user's timezone is provided, use it to format the current time
+    let currentTime: string
+    let today: string
+    let displayDate: string
+    
+    if (userTimezone) {
+        // Format time in user's timezone
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        })
+        currentTime = formatter.format(now)
+        
+        // Format date in user's timezone (including weekday)
+        const dateFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+        })
+        displayDate = dateFormatter.format(now) // e.g., "Saturday, November 30, 2025"
+        
+        // Also get parts for YYYY-MM-DD format
+        const partsFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        })
+        const parts = partsFormatter.formatToParts(now)
+        const year = parts.find(p => p.type === 'year')?.value
+        const month = parts.find(p => p.type === 'month')?.value
+        const day = parts.find(p => p.type === 'day')?.value
+        today = `${year}-${month}-${day}`
+        
+        console.log(`[Timezone Debug] Server UTC: ${now.toISOString()}, User TZ: ${userTimezone}, Formatted: ${displayDate} ${currentTime}`)
+    } else {
+        // Fallback to server time
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        today = `${year}-${month}-${day}`
+        
+        const hours = now.getHours()
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+        const period = hours >= 12 ? 'PM' : 'AM'
+        const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+        currentTime = `${hour12}:${minutes} ${period}`
+        
+        // Format display date
+        displayDate = now.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        })
+    }
 
     // Get user profile
     const { data: userProfile, error: profileError } = await supabase
@@ -63,14 +112,43 @@ async function buildContext(userId: string, supabase: any, userTimezone?: string
 
     const quarterlyPlan = quarterlyPlans?.[0]
 
-    // Get current week's weekly plan (using server's local timezone)
-    const dayOfWeek = now.getDay()
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - dayOfWeek)
-    const weekStartYear = weekStart.getFullYear()
-    const weekStartMonth = String(weekStart.getMonth() + 1).padStart(2, '0')
-    const weekStartDay = String(weekStart.getDate()).padStart(2, '0')
-    const weekStartString = `${weekStartYear}-${weekStartMonth}-${weekStartDay}`
+    // Get current week's weekly plan
+    let weekStartString: string
+    if (userTimezone) {
+        // Get day of week in user's timezone
+        const dayFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            weekday: 'short'
+        })
+        const dayName = dayFormatter.format(now)
+        const dayMap: { [key: string]: number } = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 }
+        const dayOfWeek = dayMap[dayName]
+        
+        // Calculate week start in user's timezone
+        const weekStart = new Date(now)
+        weekStart.setDate(now.getDate() - dayOfWeek)
+        
+        const weekDateFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: userTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        })
+        const weekParts = weekDateFormatter.formatToParts(weekStart)
+        const weekYear = weekParts.find(p => p.type === 'year')?.value
+        const weekMonth = weekParts.find(p => p.type === 'month')?.value
+        const weekDay = weekParts.find(p => p.type === 'day')?.value
+        weekStartString = `${weekYear}-${weekMonth}-${weekDay}`
+    } else {
+        // Fallback to server time
+        const dayOfWeek = now.getDay()
+        const weekStart = new Date(now)
+        weekStart.setDate(now.getDate() - dayOfWeek)
+        const weekStartYear = weekStart.getFullYear()
+        const weekStartMonth = String(weekStart.getMonth() + 1).padStart(2, '0')
+        const weekStartDay = String(weekStart.getDate()).padStart(2, '0')
+        weekStartString = `${weekStartYear}-${weekStartMonth}-${weekStartDay}`
+    }
 
     const { data: weeklyPlans } = await supabase
         .from('weekly_plans')
@@ -180,8 +258,28 @@ async function buildContext(userId: string, supabase: any, userTimezone?: string
         .order('created_at', { ascending: false })
         .limit(15)
 
+    // Get task reviews with task details (last 50)
+    const { data: taskReviews } = await supabase
+        .from('task_reviews')
+        .select('*, task:tasks(title, tags)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+    // Get project reviews with project details (last 20)
+    const { data: projectReviews } = await supabase
+        .from('project_reviews')
+        .select('*, project:projects(project_name, tags)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+    // Calculate work patterns from reviews
+    const workPatterns = calculateWorkPatterns(taskReviews || [], projectReviews || [])
+
     return {
         today,
+        displayDate,
         currentTime,
         userProfile: userProfile || null,
         quarterlyPlan,
@@ -196,19 +294,119 @@ async function buildContext(userId: string, supabase: any, userTimezone?: string
         behaviors: behaviors || [],
         recentCheckins: recentCheckins || [],
         conversationHistory: conversationHistory?.reverse() || [], // Reverse to chronological order
+        taskReviews: taskReviews || [],
+        projectReviews: projectReviews || [],
+        workPatterns,
+    }
+}
+
+// Helper: Calculate work patterns from review data
+function calculateWorkPatterns(taskReviews: any[], projectReviews: any[]): any {
+    const allReviews = [...taskReviews, ...projectReviews]
+    
+    if (allReviews.length === 0) {
+        return {
+            highEnergyTags: [],
+            enjoyedTags: [],
+            drainedByTags: [],
+            preferredDifficulty: null,
+            tagStats: {}
+        }
+    }
+
+    // Aggregate stats by tag
+    const tagStats: Record<string, {
+        count: number
+        totalEnjoyment: number
+        totalEnergy: number
+        energyLevels: { low: number, medium: number, high: number }
+        difficulties: { easy: number, medium: number, hard: number }
+    }> = {}
+
+    allReviews.forEach((review) => {
+        const tags = review.task?.tags || review.project?.tags || []
+        
+        tags.forEach((tag: string) => {
+            if (!tagStats[tag]) {
+                tagStats[tag] = {
+                    count: 0,
+                    totalEnjoyment: 0,
+                    totalEnergy: 0,
+                    energyLevels: { low: 0, medium: 0, high: 0 },
+                    difficulties: { easy: 0, medium: 0, hard: 0 }
+                }
+            }
+
+            tagStats[tag].count++
+            tagStats[tag].totalEnjoyment += review.enjoyment_rating || 0
+            
+            // Energy level tracking
+            const energy = review.energy_required
+            if (energy === 'high') {
+                tagStats[tag].totalEnergy += 3
+                tagStats[tag].energyLevels.high++
+            } else if (energy === 'medium') {
+                tagStats[tag].totalEnergy += 2
+                tagStats[tag].energyLevels.medium++
+            } else {
+                tagStats[tag].totalEnergy += 1
+                tagStats[tag].energyLevels.low++
+            }
+
+            // Difficulty tracking
+            const difficulty = review.difficulty
+            if (difficulty) {
+                tagStats[tag].difficulties[difficulty as 'easy' | 'medium' | 'hard']++
+            }
+        })
+    })
+
+    // Identify patterns
+    const highEnergyTags: string[] = []
+    const enjoyedTags: string[] = []
+    const drainedByTags: string[] = []
+
+    Object.entries(tagStats).forEach(([tag, stats]) => {
+        const avgEnjoyment = stats.totalEnjoyment / stats.count
+        const avgEnergy = stats.totalEnergy / stats.count
+
+        // High energy: average energy >= 2.5 (between medium and high)
+        if (avgEnergy >= 2.5) {
+            highEnergyTags.push(tag)
+        }
+
+        // Enjoyed: average enjoyment >= 4
+        if (avgEnjoyment >= 4) {
+            enjoyedTags.push(tag)
+        }
+
+        // Drained by: high energy but low enjoyment
+        if (avgEnergy >= 2.5 && avgEnjoyment < 3) {
+            drainedByTags.push(tag)
+        }
+    })
+
+    // Calculate preferred difficulty
+    let difficultyCount = { easy: 0, medium: 0, hard: 0 }
+    allReviews.forEach(review => {
+        if (review.difficulty) {
+            difficultyCount[review.difficulty as 'easy' | 'medium' | 'hard']++
+        }
+    })
+    const preferredDifficulty = Object.entries(difficultyCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null
+
+    return {
+        highEnergyTags,
+        enjoyedTags,
+        drainedByTags,
+        preferredDifficulty,
+        tagStats
     }
 }
 
 // Helper: Format context into system prompt
 function formatSystemPrompt(context: any) {
-    const { today, currentTime, userProfile, quarterlyPlan, weeklyPlan, timeBlocks, futureBlocks, activeTasks, queuedTasks, backlogTasks, projects, recentNotes, behaviors, recentCheckins } = context
-
-    const displayDate = new Date(today).toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    })
+    const { today, displayDate, currentTime, userProfile, quarterlyPlan, weeklyPlan, timeBlocks, futureBlocks, activeTasks, queuedTasks, backlogTasks, projects, recentNotes, behaviors, recentCheckins, taskReviews, projectReviews, workPatterns } = context
 
     const userName = userProfile?.display_name || 'there'
     const aiName = userProfile?.ai_name || 'Claude'
@@ -232,7 +430,7 @@ function formatSystemPrompt(context: any) {
             break
     }
 
-    let prompt = `You are ${aiName}, ${userName}'s personal productivity assistant, focused on deep work and meaningful productivity. When asked your name, say you are ${aiName}.
+    let prompt = `You are ${aiName}, ${userName}'s personal productivity assistant in the Yinsen app, focused on meaningful productivity and helping them not waste their life. When asked your name, say you are ${aiName}.
 
 PERSONALITY: ${personalityInstruction}
 REMINDER STYLE: ${reminderStyle}
@@ -261,6 +459,42 @@ ${userProfile.goals_long_term ? `- Long-term Goals: ${userProfile.goals_long_ter
 ${userProfile.health_considerations?.length > 0 ? `- Health Considerations: ${userProfile.health_considerations.join(', ')}` : ''}
 ${userProfile.accommodation_preferences ? `- Accommodation Preferences: ${userProfile.accommodation_preferences}` : ''}
 ${userProfile.has_caregiving_responsibilities ? '- Has Caregiving Responsibilities: Yes' : ''}
+
+`
+    }
+
+    // Add work patterns from reviews
+    if (workPatterns && (taskReviews.length > 0 || projectReviews.length > 0)) {
+        prompt += `WORK PATTERNS & PREFERENCES (from ${taskReviews.length + projectReviews.length} completed reviews):
+`
+
+        if (workPatterns.enjoyedTags.length > 0) {
+            prompt += `- Most Enjoyed Work: ${workPatterns.enjoyedTags.join(', ')}
+`
+        }
+
+        if (workPatterns.highEnergyTags.length > 0) {
+            prompt += `- High Energy Required: ${workPatterns.highEnergyTags.join(', ')}
+`
+        }
+
+        if (workPatterns.drainedByTags.length > 0) {
+            prompt += `- Draining Work (high energy, low enjoyment): ${workPatterns.drainedByTags.join(', ')}
+`
+        }
+
+        if (workPatterns.preferredDifficulty) {
+            prompt += `- Preferred Difficulty: ${workPatterns.preferredDifficulty}
+`
+        }
+
+        prompt += `
+SCHEDULING GUIDELINES BASED ON REVIEWS:
+1. Schedule high-energy work (${workPatterns.highEnergyTags.join(', ')}) during peak hours (${userProfile?.peak_hours_start || '9:00'}-${userProfile?.peak_hours_end || '12:00'})
+2. Batch similar task types together (same tags) to reduce context switching
+3. Avoid scheduling more than 2 consecutive high-energy tasks
+4. Intersperse draining work with enjoyable tasks for motivation
+5. Reference past review feedback when suggesting task timing or work planning
 
 `
     }
@@ -645,6 +879,36 @@ const tools: Anthropic.Tool[] = [
             required: ['day_of_week', 'start_time', 'end_time', 'is_enabled'],
         },
     },
+    // ==================== SCHEDULE OPTIMIZATION ====================
+    {
+        name: 'analyze_schedule',
+        description: 'Analyze time blocks for a date to identify optimization opportunities based on user review patterns and preferences. Returns optimization score and specific issues.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                date: { type: 'string', description: 'Date to analyze in YYYY-MM-DD format' },
+            },
+            required: ['date'],
+        },
+    },
+    {
+        name: 'get_task_insights',
+        description: 'Analyze historical task/project reviews to provide insights on work patterns, preferences, and optimal timing for different types of work.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                tag_filter: { 
+                    type: 'array', 
+                    items: { type: 'string' },
+                    description: 'Optional: Filter insights by specific tags' 
+                },
+                date_range_days: { 
+                    type: 'number', 
+                    description: 'Optional: Number of days to look back (default: 30)' 
+                },
+            },
+        },
+    },
 ]
 
 // Tool execution handlers
@@ -698,6 +962,11 @@ async function executeToolCall(
             // Work Hours
             case 'set_work_hours':
                 return await setWorkHours(toolInput, userId, supabase)
+            // Schedule Optimization
+            case 'analyze_schedule':
+                return await analyzeSchedule(toolInput, userId, supabase)
+            case 'get_task_insights':
+                return await getTaskInsights(toolInput, userId, supabase)
             default:
                 return `Unknown tool: ${toolName}`
         }
@@ -1272,12 +1541,206 @@ async function setWorkHours(input: ToolInput, userId: string, supabase: any): Pr
         : `Disabled work hours for ${dayName}`
 }
 
+// ==================== SCHEDULE OPTIMIZATION HANDLERS ====================
+
+async function analyzeSchedule(input: ToolInput, userId: string, supabase: any): Promise<string> {
+    const { date } = input
+    
+    // Get time blocks for the date
+    const { data: timeBlocks } = await supabase
+        .from('time_blocks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .order('start_time')
+    
+    if (!timeBlocks || timeBlocks.length === 0) {
+        return `No time blocks scheduled for ${date}.`
+    }
+    
+    // Get user profile for peak hours
+    const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('peak_hours_start, peak_hours_end')
+        .eq('user_id', userId)
+        .single()
+    
+    // Get task reviews to understand energy patterns by task type
+    const { data: taskReviews } = await supabase
+        .from('task_reviews')
+        .select('*, task:tasks(title, tags)')
+        .eq('user_id', userId)
+        .limit(50)
+    
+    const { data: projectReviews } = await supabase
+        .from('project_reviews')
+        .select('*, project:projects(project_name, tags)')
+        .eq('user_id', userId)
+        .limit(20)
+    
+    const workPatterns = calculateWorkPatterns(taskReviews || [], projectReviews || [])
+    
+    // Analyze schedule
+    const issues: string[] = []
+    let highEnergyCount = 0
+    const peakStart = userProfile?.peak_hours_start || '09:00'
+    const peakEnd = userProfile?.peak_hours_end || '12:00'
+    
+    // Check each block
+    for (let i = 0; i < timeBlocks.length; i++) {
+        const block = timeBlocks[i]
+        const blockStart = block.start_time.slice(0, 5)
+        
+        // Check if it's a high-energy block type
+        const isHighEnergy = block.block_type === 'deep_work' || block.block_type === 'meeting'
+        
+        if (isHighEnergy) {
+            highEnergyCount++
+            
+            // Check if outside peak hours
+            if (blockStart < peakStart || blockStart >= peakEnd) {
+                issues.push(`⚠️ High-energy block "${block.task_title || block.block_type}" at ${blockStart} is outside peak hours (${peakStart}-${peakEnd})`)
+            }
+        }
+        
+        // Check for too many consecutive high-energy blocks
+        if (i > 0 && i < timeBlocks.length) {
+            const prevBlock = timeBlocks[i - 1]
+            const isPrevHighEnergy = prevBlock.block_type === 'deep_work' || prevBlock.block_type === 'meeting'
+            
+            if (isHighEnergy && isPrevHighEnergy && highEnergyCount >= 3) {
+                issues.push(`⚠️ Cognitive overload risk: 3+ consecutive high-energy blocks around ${blockStart}`)
+            }
+        }
+    }
+    
+    // Calculate optimization score
+    const totalBlocks = timeBlocks.length
+    const issueCount = issues.length
+    const score = Math.max(0, Math.round(100 - (issueCount / totalBlocks) * 50))
+    
+    let response = `📊 Schedule Analysis for ${date}:\n\n`
+    response += `Optimization Score: ${score}%\n`
+    response += `Time Blocks: ${totalBlocks}\n\n`
+    
+    if (issues.length > 0) {
+        response += `Issues Found:\n${issues.join('\n')}\n\n`
+        response += `Suggestions:\n`
+        response += `1. Move high-energy work to peak hours (${peakStart}-${peakEnd})\n`
+        response += `2. Add breaks between consecutive intense blocks\n`
+        response += `3. Consider rescheduling some blocks for better energy alignment\n`
+    } else {
+        response += `✅ Schedule looks well-optimized! Good alignment with your peak hours and energy patterns.`
+    }
+    
+    return response
+}
+
+async function getTaskInsights(input: ToolInput, userId: string, supabase: any): Promise<string> {
+    const { tag_filter, date_range_days = 30 } = input
+    
+    // Get date range
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - date_range_days)
+    const startDateStr = getLocalDateString(startDate)
+    
+    // Get task reviews
+    let query = supabase
+        .from('task_reviews')
+        .select('*, task:tasks(title, tags)')
+        .eq('user_id', userId)
+        .gte('created_at', startDateStr)
+    
+    const { data: taskReviews } = await query
+    
+    // Get project reviews
+    const { data: projectReviews } = await supabase
+        .from('project_reviews')
+        .select('*, project:projects(project_name, tags)')
+        .eq('user_id', userId)
+        .gte('created_at', startDateStr)
+    
+    const allReviews = [...(taskReviews || []), ...(projectReviews || [])]
+    
+    if (allReviews.length === 0) {
+        return `No reviews found in the last ${date_range_days} days. Complete some tasks/projects and review them to get personalized insights!`
+    }
+    
+    // Filter by tags if provided
+    let filteredReviews = allReviews
+    if (tag_filter && tag_filter.length > 0) {
+        filteredReviews = allReviews.filter(review => {
+            const tags = review.task?.tags || review.project?.tags || []
+            return tag_filter.some((filterTag: string) => tags.includes(filterTag))
+        })
+        
+        if (filteredReviews.length === 0) {
+            return `No reviews found with tags: ${tag_filter.join(', ')}`
+        }
+    }
+    
+    // Calculate aggregate stats
+    const totalReviews = filteredReviews.length
+    const avgEnjoyment = filteredReviews.reduce((sum, r) => sum + (r.enjoyment_rating || 0), 0) / totalReviews
+    const avgOverall = filteredReviews.reduce((sum, r) => sum + (r.overall_rating || 0), 0) / totalReviews
+    
+    // Energy distribution
+    const energyCounts = { low: 0, medium: 0, high: 0 }
+    filteredReviews.forEach(r => {
+        if (r.energy_required) energyCounts[r.energy_required as 'low' | 'medium' | 'high']++
+    })
+    
+    // Difficulty distribution
+    const difficultyCounts = { easy: 0, medium: 0, hard: 0 }
+    filteredReviews.forEach(r => {
+        if (r.difficulty) difficultyCounts[r.difficulty as 'easy' | 'medium' | 'hard']++
+    })
+    
+    // Calculate work patterns
+    const workPatterns = calculateWorkPatterns(taskReviews || [], projectReviews || [])
+    
+    let response = `📈 Work Insights (Last ${date_range_days} days):\n\n`
+    
+    if (tag_filter && tag_filter.length > 0) {
+        response += `Filtered by tags: ${tag_filter.join(', ')}\n\n`
+    }
+    
+    response += `Reviews Analyzed: ${totalReviews}\n`
+    response += `Average Enjoyment: ${avgEnjoyment.toFixed(1)}/5 ⭐\n`
+    response += `Average Overall Rating: ${avgOverall.toFixed(1)}/5\n\n`
+    
+    response += `Energy Distribution:\n`
+    response += `  • Low: ${energyCounts.low} (${Math.round(energyCounts.low / totalReviews * 100)}%)\n`
+    response += `  • Medium: ${energyCounts.medium} (${Math.round(energyCounts.medium / totalReviews * 100)}%)\n`
+    response += `  • High: ${energyCounts.high} (${Math.round(energyCounts.high / totalReviews * 100)}%)\n\n`
+    
+    if (workPatterns.enjoyedTags.length > 0) {
+        response += `Most Enjoyed Work: ${workPatterns.enjoyedTags.join(', ')}\n`
+    }
+    
+    if (workPatterns.drainedByTags.length > 0) {
+        response += `Draining Work: ${workPatterns.drainedByTags.join(', ')}\n`
+    }
+    
+    response += `\n💡 Recommendations:\n`
+    if (workPatterns.highEnergyTags.length > 0) {
+        response += `• Schedule these during peak hours: ${workPatterns.highEnergyTags.join(', ')}\n`
+    }
+    if (workPatterns.enjoyedTags.length > 0 && workPatterns.drainedByTags.length > 0) {
+        response += `• Alternate draining tasks with enjoyable ones for better motivation\n`
+    }
+    response += `• Continue tracking reviews to get more personalized insights!`
+    
+    return response
+}
+
 // Main POST handler
 export async function POST(request: NextRequest) {
     console.log('API: Received chat request')
     try {
-        const { message } = await request.json()
-        console.log('API: Message received:', message)
+        const { message, timezone } = await request.json()
+        console.log('API: Message received:', message, 'Timezone:', timezone)
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -1297,7 +1760,7 @@ export async function POST(request: NextRequest) {
 
         // Build context
         console.log('API: Building context...')
-        const context = await buildContext(user.id, supabase)
+        const context = await buildContext(user.id, supabase, timezone)
         console.log('API: Context built')
 
         const systemPrompt = formatSystemPrompt(context)

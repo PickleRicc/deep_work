@@ -6,6 +6,9 @@ import { Plus, X, Edit, Trash2, Folder, Calendar, Target, AlertCircle, CheckCirc
 import { Project, QuarterlyPlan, WeeklyPlan } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useReviewPrompt } from '@/hooks/use-review-prompt'
+import ReviewModal from '@/components/review-modal'
+import TagSelector from '@/components/tag-selector'
 
 interface ProjectManagerProps {
     projects: Project[]
@@ -16,6 +19,7 @@ interface ProjectManagerProps {
 export default function ProjectManager({ projects: initialProjects, quarterlyPlans, weeklyPlans }: ProjectManagerProps) {
     const router = useRouter()
     const supabase = createClient()
+    const { addPendingReview, showReviewModal, currentReview, skipReview, completeReview } = useReviewPrompt()
     
     const [projects, setProjects] = useState(initialProjects)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -33,6 +37,7 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
     const [weeklyPlanId, setWeeklyPlanId] = useState('')
     const [progressPercentage, setProgressPercentage] = useState(0)
     const [notes, setNotes] = useState('')
+    const [tags, setTags] = useState<string[]>([])
 
     const openAddModal = () => {
         resetForm()
@@ -48,6 +53,7 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
         setStartDate(project.start_date || '')
         setTargetDate(project.target_completion_date || '')
         setQuarterlyPlanId(project.quarterly_plan_id || '')
+        setTags(project.tags || [])
         setWeeklyPlanId(project.weekly_plan_id || '')
         setProgressPercentage(project.progress_percentage)
         setNotes(project.notes || '')
@@ -66,6 +72,7 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
         setWeeklyPlanId('')
         setProgressPercentage(0)
         setNotes('')
+        setTags([])
     }
 
     const handleSave = async () => {
@@ -86,7 +93,13 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
             weekly_plan_id: weeklyPlanId || null,
             progress_percentage: progressPercentage,
             notes: notes.trim() || null,
+            tags: tags.length > 0 ? tags : null,
         }
+
+        // Check if project was just completed
+        const wasJustCompleted = editingProject && 
+                                 editingProject.status !== 'completed' && 
+                                 status === 'completed'
 
         if (editingProject) {
             // Update existing project
@@ -96,7 +109,15 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
                 .eq('id', editingProject.id)
 
             if (!error) {
-                setProjects(projects.map(p => p.id === editingProject.id ? { ...p, ...projectData } : p))
+                const updatedProject = { ...editingProject, ...projectData }
+                setProjects(projects.map(p => p.id === editingProject.id ? updatedProject : p))
+                
+                // Trigger review prompt if project was just completed
+                if (wasJustCompleted) {
+                    setTimeout(() => {
+                        addPendingReview(updatedProject, 'project')
+                    }, 500)
+                }
             }
         } else {
             // Create new project
@@ -436,6 +457,12 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
                                         placeholder="Additional notes or context..."
                                     />
                                 </div>
+
+                                <TagSelector
+                                    selectedTags={tags}
+                                    onChange={setTags}
+                                    label="Tags (Optional)"
+                                />
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
@@ -457,6 +484,16 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* REVIEW MODAL */}
+            {showReviewModal && currentReview && (
+                <ReviewModal
+                    item={currentReview.item}
+                    itemType={currentReview.itemType}
+                    onClose={skipReview}
+                    onSubmit={() => completeReview(currentReview.item)}
+                />
+            )}
         </div>
     )
 }

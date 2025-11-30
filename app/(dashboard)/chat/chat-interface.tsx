@@ -68,10 +68,16 @@ export default function ChatInterface() {
         setLoading(true)
 
         try {
+            // Get user's timezone
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+            
             const response = await fetch('/api/claude/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage }),
+                body: JSON.stringify({ 
+                    message: userMessage,
+                    timezone: timezone 
+                }),
             })
 
             if (!response.ok) {

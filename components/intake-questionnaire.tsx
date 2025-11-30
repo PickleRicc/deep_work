@@ -288,7 +288,7 @@ export default function IntakeQuestionnaire({ isOpen, onClose, onComplete }: Int
                                     <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
                                         <Sparkles size={48} className="text-blue-400" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-3">Welcome to Deep Work</h3>
+                                    <h3 className="text-2xl font-bold text-white mb-3">Welcome to Yinsen</h3>
                                     <p className="text-gray-400 max-w-md mx-auto">
                                         I&apos;m your AI productivity partner. Let me learn about you so I can provide personalized guidance.
                                     </p>

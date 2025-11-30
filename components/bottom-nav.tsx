@@ -3,15 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
-import { Clock, MessageSquare, Brain, BookOpen, TrendingUp, BarChart3, Home } from 'lucide-react'
+import { Clock, MessageSquare, BookOpen, Home } from 'lucide-react'
 
 const tabs = [
     { name: 'Home', icon: Home, href: '/home' },
     { name: 'Work', icon: Clock, href: '/work' },
     { name: 'Chat', icon: MessageSquare, href: '/chat' },
     { name: 'Notes', icon: BookOpen, href: '/notebook' },
-    { name: 'Behavior', icon: TrendingUp, href: '/behavior' },
-    { name: 'Stats', icon: BarChart3, href: '/analytics' },
 ]
 
 export default function BottomNav() {

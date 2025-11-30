@@ -49,7 +49,7 @@ export default function SignupPage() {
             <div className="w-full max-w-md">
                 <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8">
                     <h1 className="text-2xl font-bold text-white mb-2">Create an account</h1>
-                    <p className="text-zinc-400 mb-6">Start your deep work journey with ClicklessAI</p>
+                    <p className="text-zinc-400 mb-6">Start your productivity journey with Yinsen</p>
 
                     <form onSubmit={handleSignup} className="space-y-4">
                         <div>

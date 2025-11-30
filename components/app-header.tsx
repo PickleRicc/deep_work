@@ -1,13 +1,14 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'motion/react'
-import { LogOut, User, MessageCircle, HelpCircle } from 'lucide-react'
+import { motion } from 'motion/react'
+import { LogOut, User, HelpCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import HowToUseModal from './how-to-use-modal'
+import HamburgerMenu from './hamburger-menu'
 import { useAI } from '@/contexts/ai-context'
 
 const staticPageNames: Record<string, string> = {
@@ -18,16 +19,8 @@ const staticPageNames: Record<string, string> = {
     '/behavior': 'Behavior Tracking',
 }
 
-const quotes = [
-    "Deep work is the ability to focus without distraction on a cognitively demanding task.",
-    "Clarity about what matters provides clarity about what does not.",
-    "The ability to perform deep work is becoming increasingly rare and increasingly valuable.",
-    "Focus is a matter of deciding what things you're not going to do.",
-    "The secret to getting ahead is getting started.",
-    "Concentrate all your thoughts upon the work in hand.",
-    "It's not about having time. It's about making time.",
-    "The key is not to prioritize what's on your schedule, but to schedule your priorities.",
-]
+// Yinsen Philosophy - Inspired by the character who told Tony Stark not to waste his life
+const yinsenPhilosophy = "Don't waste your life. Every moment is an opportunity to build something meaningful."
 
 export default function AppHeader() {
     const pathname = usePathname()
@@ -35,34 +28,12 @@ export default function AppHeader() {
     const supabase = createClient()
     const { aiName } = useAI()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [quotesEnabled, setQuotesEnabled] = useState(true)
-    const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0)
     const [isHowToOpen, setIsHowToOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
         setMounted(true)
-        const saved = localStorage.getItem('quotesEnabled')
-        if (saved !== null) {
-            setQuotesEnabled(saved === 'true')
-        }
     }, [])
-
-    useEffect(() => {
-        if (!quotesEnabled) return
-
-        const interval = setInterval(() => {
-            setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length)
-        }, 10000)
-
-        return () => clearInterval(interval)
-    }, [quotesEnabled])
-
-    const toggleQuotes = () => {
-        const newValue = !quotesEnabled
-        setQuotesEnabled(newValue)
-        localStorage.setItem('quotesEnabled', String(newValue))
-    }
 
     // Dynamic page name - use AI name for chat page
     const pageName = pathname === '/chat' 
@@ -95,28 +66,24 @@ export default function AppHeader() {
                             <p className="text-xs text-gray-500 hidden md:block lg:text-base lg:text-white">{pageName}</p>
                         </div>
                         
-                        {/* Quote Display */}
-                        {quotesEnabled && (
-                            <div className="hidden lg:block ml-4 pl-4 border-l border-zinc-800">
-                                <AnimatePresence mode="wait">
-                                    <motion.p
-                                        key={currentQuoteIndex}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.5 }}
-                                        className="text-sm text-white/60 max-w-md italic"
-                                    >
-                                        "{quotes[currentQuoteIndex]}"
-                                    </motion.p>
-                                </AnimatePresence>
-                            </div>
-                        )}
+                        {/* Yinsen Philosophy */}
+                        <div className="hidden lg:block ml-4 pl-4 border-l border-zinc-800">
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-sm text-blue-400/80 max-w-md font-medium"
+                            >
+                                {yinsenPhilosophy}
+                            </motion.p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Controls */}
                 <div className="flex items-center gap-2">
+                    {/* Hamburger Menu - Analytics, Reviews, Behavior */}
+                    <HamburgerMenu />
+
                     {/* How to Use - Mobile Only */}
                     <button
                         onClick={() => setIsHowToOpen(true)}
@@ -124,19 +91,6 @@ export default function AppHeader() {
                         title="How to use this app"
                     >
                         <HelpCircle size={18} />
-                    </button>
-
-                    {/* Quote Toggle */}
-                    <button
-                        onClick={toggleQuotes}
-                        className={`hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                            quotesEnabled
-                                ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                                : 'bg-zinc-900/50 text-gray-500 hover:text-gray-400'
-                        }`}
-                        title={quotesEnabled ? 'Hide quotes' : 'Show quotes'}
-                    >
-                        <MessageCircle size={16} />
                     </button>
 
                     {/* User Menu */}

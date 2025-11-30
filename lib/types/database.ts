@@ -35,7 +35,8 @@ export interface TimeBlock {
     end_time: string // HH:MM format
     block_type: BlockType
     task_title: string | null
-    task_id: string | null // Optional reference to active project
+    task_id: string | null // Optional reference to active task
+    project_id: string | null // Optional reference to project
     completed: boolean
     created_at: string
 }
@@ -48,6 +49,7 @@ export interface Task {
     queue_position: number | null
     notes: string | null
     project_id: string | null
+    tags: string[] | null
     created_at: string
     completed_at: string | null
 }
@@ -221,6 +223,78 @@ export interface AIInsight {
     created_at: string
 }
 
+// Review System Types
+export type Difficulty = 'easy' | 'medium' | 'hard'
+export type ValueImpact = 'low' | 'medium' | 'high'
+export type EnergyLevel = 'low' | 'medium' | 'high'
+
+export interface WorkTag {
+    id: string
+    tag_name: string
+    tag_category: string | null // 'work_type', 'energy_level', 'enjoyment', etc.
+    color_hex: string | null
+    icon_name: string | null
+    created_at: string
+}
+
+export interface TaskReview {
+    id: string
+    task_id: string
+    user_id: string
+    overall_rating: number // 1-5
+    difficulty: Difficulty
+    enjoyment_rating: number // 1-5
+    value_impact: ValueImpact
+    energy_required: EnergyLevel
+    what_made_hard: string | null
+    what_was_fun: string | null
+    concepts_disliked: string | null
+    would_do_again: boolean | null
+    created_at: string
+}
+
+export interface ProjectReview {
+    id: string
+    project_id: string
+    user_id: string
+    overall_rating: number // 1-5
+    difficulty: Difficulty
+    enjoyment_rating: number // 1-5
+    value_impact: ValueImpact
+    energy_required: EnergyLevel
+    what_made_hard: string | null
+    what_was_fun: string | null
+    concepts_disliked: string | null
+    would_do_again: boolean | null
+    created_at: string
+}
+
+// Work Pattern Analysis Types
+export interface WorkPattern {
+    highEnergyTags: string[]
+    enjoyedTags: string[]
+    drainedByTags: string[]
+    preferredDifficulty: Difficulty | null
+    avgTaskDuration: number
+}
+
+// Schedule Optimization Types
+export interface ScheduleIssue {
+    block_id: string
+    issue_type: 'energy_misalignment' | 'cognitive_overload' | 'context_switching' | 'enjoyment_imbalance'
+    severity: 'low' | 'medium' | 'high'
+    description: string
+    suggestion: string
+}
+
+export interface ScheduleOptimization {
+    current_score: number // 0-100
+    optimized_score: number // 0-100
+    issues: ScheduleIssue[]
+    optimized_blocks: TimeBlock[]
+    changes_summary: string[]
+}
+
 // Database table names
 export type Tables = {
     time_blocks: TimeBlock
@@ -237,4 +311,7 @@ export type Tables = {
     user_work_hours: UserWorkHours
     user_profiles: UserProfile
     ai_insights: AIInsight
+    work_tags: WorkTag
+    task_reviews: TaskReview
+    project_reviews: ProjectReview
 }

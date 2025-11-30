@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { TimeBlock, Task } from '@/lib/types/database'
+import { TimeBlock, Task, TaskReview, ProjectReview } from '@/lib/types/database'
 import {
     calculateAnalytics,
     getDailyFocusData,
@@ -13,6 +13,8 @@ import BlockDistributionChart from './block-distribution-chart'
 import FocusHeatmap from './focus-heatmap'
 import PeakHoursChart from './peak-hours-chart'
 import ProductivityScore from './productivity-score'
+import WorkSatisfactionChart from './work-satisfaction-chart'
+import TagPerformanceTable from './tag-performance-table'
 import { BarChart3 } from 'lucide-react'
 import { getLocalDateString } from '@/lib/utils/date'
 
@@ -47,6 +49,22 @@ export default async function AnalyticsPage() {
         .eq('user_id', user.id)
         .in('status', ['active', 'completed'])
         .returns<Task[]>()
+
+    // Fetch task reviews
+    const { data: taskReviews } = await supabase
+        .from('task_reviews')
+        .select('*, task:tasks(title, tags)')
+        .eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgoStr)
+        .order('created_at', { ascending: true })
+
+    // Fetch project reviews
+    const { data: projectReviews } = await supabase
+        .from('project_reviews')
+        .select('*, project:projects(project_name, tags)')
+        .eq('user_id', user.id)
+        .gte('created_at', thirtyDaysAgoStr)
+        .order('created_at', { ascending: true })
 
     // Use the blocks data
     const blocks = allBlocks || []
@@ -98,6 +116,20 @@ export default async function AnalyticsPage() {
 
             {/* Focus Heatmap - Full width */}
             <FocusHeatmap data={hourlyProductivity} />
+
+            {/* Review-Based Analytics */}
+            {(taskReviews && taskReviews.length > 0) || (projectReviews && projectReviews.length > 0) ? (
+                <>
+                    <WorkSatisfactionChart 
+                        taskReviews={taskReviews || []} 
+                        projectReviews={projectReviews || []} 
+                    />
+                    <TagPerformanceTable 
+                        taskReviews={taskReviews || []} 
+                        projectReviews={projectReviews || []} 
+                    />
+                </>
+            ) : null}
 
             {/* Empty state */}
             {blocks.length === 0 && (

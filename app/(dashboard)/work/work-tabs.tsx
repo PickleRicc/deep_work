@@ -12,6 +12,7 @@ import NotificationManager from '@/components/notification-manager'
 import QueueManager from '../queue/queue-manager'
 import { PlanTabs } from '../plan/plan-tabs'
 import ProjectManager from './project-manager'
+import PageQuotes from '@/components/page-quotes'
 
 interface WorkTabsProps {
     // Block data
@@ -35,6 +36,8 @@ interface WorkTabsProps {
     allWeeklyPlans: WeeklyPlan[]
     // Initial tab
     initialTab: string
+    // Quotes
+    quotes: string[]
 }
 
 type TabType = 'block' | 'queue' | 'projects' | 'plan'
@@ -79,6 +82,9 @@ export default function WorkTabs(props: WorkTabsProps) {
                         </div>
                     )}
                 </div>
+
+                {/* Motivational Quotes */}
+                <PageQuotes quotes={props.quotes} />
 
                 {/* Tab Buttons */}
                 <div className="flex p-1 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl overflow-x-auto scrollbar-hide">
@@ -130,6 +136,7 @@ export default function WorkTabs(props: WorkTabsProps) {
                             selectedDate={props.selectedDate}
                             activeTasks={props.activeTasksForBlock}
                             workHours={props.workHours}
+                            projects={props.projects}
                         />
                     </motion.div>
                 )}
