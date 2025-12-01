@@ -32,23 +32,13 @@ export default async function BlockPage({
     })
 
     // Fetch time blocks for selected date
-    const { data: timeBlocks, error: blocksError } = await supabase
+    const { data: timeBlocks } = await supabase
         .from('time_blocks')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', selectedDate)
         .order('start_time', { ascending: true })
         .returns<TimeBlock[]>()
-
-    // Debug logging
-    console.log('Block Page Debug:', {
-        selectedDate,
-        providedDate: params.date,
-        todayDate: getLocalDateString(),
-        blocksFound: timeBlocks?.length || 0,
-        blocksError,
-        blockDates: timeBlocks?.map(b => b.date) || []
-    })
 
     // Fetch active tasks (max 3)
     const { data: activeTasks } = await supabase
