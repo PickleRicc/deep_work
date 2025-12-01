@@ -310,9 +310,9 @@ export default function ProjectManager({ projects: initialProjects, quarterlyPla
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto pb-24 sm:pb-6"
                             style={{
-                                maxHeight: 'calc(100vh - max(env(safe-area-inset-top), 16px) - max(env(safe-area-inset-bottom), 16px))'
+                                maxHeight: 'calc(100vh - max(env(safe-area-inset-top), 16px) - max(env(safe-area-inset-bottom), 80px))'
                             }}
                             onClick={e => e.stopPropagation()}
                         >

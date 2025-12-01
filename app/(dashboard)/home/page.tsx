@@ -24,13 +24,21 @@ export default async function HomePage() {
     const currentTime = now.toTimeString().slice(0, 5)
 
     // Fetch today's time blocks
-    const { data: todayBlocks } = await supabase
+    const { data: todayBlocks, error: blocksError } = await supabase
         .from('time_blocks')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', today)
         .order('start_time', { ascending: true })
         .returns<TimeBlock[]>()
+
+    // Debug logging
+    console.log('Dashboard Debug:', {
+        today,
+        blocksFound: todayBlocks?.length || 0,
+        blocksError,
+        blockDates: todayBlocks?.map(b => b.date) || []
+    })
 
     // Fetch active tasks
     const { data: activeTasks } = await supabase

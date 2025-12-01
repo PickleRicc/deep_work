@@ -282,6 +282,13 @@ export default function BlockSchedule({ blocks, selectedDate, activeTasks, workH
             project_id: projectId || null,
         }
 
+        // Debug logging
+        console.log('Creating/Updating Time Block:', {
+            blockDate,
+            selectedDate,
+            blockData
+        })
+
         if (editingBlock) {
             await supabase
                 .from('time_blocks')
