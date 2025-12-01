@@ -148,3 +148,4 @@ npx supabase db reset --local  # For local dev
 The migration is idempotent and safe to run multiple times.
 
 
+

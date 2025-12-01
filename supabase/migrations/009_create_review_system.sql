@@ -169,3 +169,4 @@ CREATE INDEX IF NOT EXISTS idx_time_blocks_project_id ON time_blocks(project_id)
 -- Create index for tasks tags (GIN index for array columns)
 CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN(tags);
 
+
