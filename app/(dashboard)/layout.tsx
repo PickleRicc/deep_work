@@ -5,6 +5,7 @@ import DesktopNav from '@/components/desktop-nav'
 import AppHeader from '@/components/app-header'
 import AIChatPanel from '@/components/ai-chat-panel'
 import NotificationScheduler from '@/components/notification-scheduler'
+import TimezoneDetector from '@/components/timezone-detector'
 import { Providers } from '@/components/providers'
 
 export default async function DashboardLayout({
@@ -45,6 +46,9 @@ export default async function DashboardLayout({
 
                 {/* Background notification scheduler */}
                 <NotificationScheduler />
+
+                {/* Timezone auto-detection */}
+                <TimezoneDetector />
             </div>
         </Providers>
     )

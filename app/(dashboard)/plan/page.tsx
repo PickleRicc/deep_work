@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { QuarterlyPlan, WeeklyPlan } from '@/lib/types/database'
 import { PlanTabs } from './plan-tabs'
-import { getLocalDateString } from '@/lib/utils/date'
+import { getDateInTimezone } from '@/lib/utils/date'
 
 export default async function PlanPage() {
     const supabase = await createClient()
@@ -12,10 +12,20 @@ export default async function PlanPage() {
         return null
     }
 
-    // Calculate current quarter (Q1-Q4 based on month)
-    const now = new Date()
-    const month = now.getMonth() // 0-11
-    const year = now.getFullYear()
+    // Get user's timezone from profile
+    const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single()
+
+    const timezone = profileData?.timezone || 'America/New_York'
+
+    // Calculate current quarter (Q1-Q4 based on month) in user's timezone
+    const userDateStr = getDateInTimezone(timezone)
+    const userDate = new Date(userDateStr + 'T12:00:00')
+    const month = userDate.getMonth() // 0-11
+    const year = userDate.getFullYear()
     const quarter = Math.floor(month / 3) + 1
     const currentQuarter = `${year}-Q${quarter}`
 
@@ -30,12 +40,11 @@ export default async function PlanPage() {
 
     const quarterlyPlan = quarterlyPlans?.[0] || null
 
-    // Calculate week start (Sunday of current week) in local timezone
-    const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - dayOfWeek)
-    const weekStartString = getLocalDateString(weekStart)
+    // Calculate week start (Sunday of current week) in user's timezone
+    const dayOfWeek = userDate.getDay() // 0 = Sunday
+    const weekStart = new Date(userDate)
+    weekStart.setDate(userDate.getDate() - dayOfWeek)
+    const weekStartString = getDateInTimezone(timezone, weekStart)
 
     // Fetch weekly plan where week_start matches
     const { data: weeklyPlans } = await supabase

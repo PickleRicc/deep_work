@@ -4,7 +4,7 @@ import ActiveProjects from './active-projects'
 import BlockSchedule from './block-schedule'
 import WorkHoursConfig from './work-hours-config'
 import PomodoroTimer from '@/components/pomodoro-timer'
-import { getLocalDateString } from '@/lib/utils/date'
+import { getDateInTimezone } from '@/lib/utils/date'
 
 export default async function BlockPage({
     searchParams,
@@ -20,8 +20,17 @@ export default async function BlockPage({
         return null
     }
 
-    // Use provided date or default to today (in user's local timezone)
-    const selectedDate = params.date || getLocalDateString()
+    // Get user's timezone from profile
+    const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single()
+
+    const timezone = profileData?.timezone || 'America/New_York'
+
+    // Use provided date or default to today (in user's timezone)
+    const selectedDate = params.date || getDateInTimezone(timezone)
 
     // Format date for display
     const displayDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {

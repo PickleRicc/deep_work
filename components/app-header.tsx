@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { motion } from 'motion/react'
-import { LogOut, User, HelpCircle } from 'lucide-react'
+import { LogOut, User, HelpCircle, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -30,10 +30,54 @@ export default function AppHeader() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isHowToOpen, setIsHowToOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [timezone, setTimezone] = useState<string | null>(null)
+    const [currentTime, setCurrentTime] = useState<string>('')
 
     useEffect(() => {
         setMounted(true)
-    }, [])
+        
+        // Fetch user's timezone from profile
+        const fetchTimezone = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('timezone')
+                .eq('user_id', user.id)
+                .single()
+            
+            if (profile?.timezone) {
+                setTimezone(profile.timezone)
+            } else {
+                // Fallback to browser timezone
+                setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
+            }
+        }
+        
+        fetchTimezone()
+    }, [supabase])
+
+    // Update current time every minute
+    useEffect(() => {
+        if (!timezone) return
+        
+        const updateTime = () => {
+            const now = new Date()
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+            })
+            setCurrentTime(formatter.format(now))
+        }
+        
+        updateTime()
+        const interval = setInterval(updateTime, 60000) // Update every minute
+        
+        return () => clearInterval(interval)
+    }, [timezone])
 
     // Dynamic page name - use AI name for chat page
     const pageName = pathname === '/chat' 
@@ -81,6 +125,19 @@ export default function AppHeader() {
 
                 {/* Controls */}
                 <div className="flex items-center gap-2">
+                    {/* Timezone Indicator */}
+                    {timezone && (
+                        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/50 border border-zinc-800 text-xs">
+                            <Globe size={12} className="text-blue-400" />
+                            <span className="text-gray-400">
+                                {timezone.replace(/_/g, ' ').split('/').pop()}
+                            </span>
+                            <span className="text-blue-400 font-medium ml-1">
+                                {currentTime}
+                            </span>
+                        </div>
+                    )}
+
                     {/* Hamburger Menu - Analytics, Reviews, Behavior */}
                     <HamburgerMenu />
 

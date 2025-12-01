@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Behavior, BehaviorCheckin } from '@/lib/types/database'
 import BehaviorManager from './behavior-manager'
 import PageQuotes, { behaviorQuotes } from '@/components/page-quotes'
-import { getLocalDateString } from '@/lib/utils/date'
+import { getDateInTimezone } from '@/lib/utils/date'
 
 export default async function BehaviorPage() {
     const supabase = await createClient()
@@ -13,6 +13,15 @@ export default async function BehaviorPage() {
         return null
     }
 
+    // Get user's timezone from profile
+    const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single()
+
+    const timezone = profileData?.timezone || 'America/New_York'
+
     // Fetch all behaviors
     const { data: behaviors } = await supabase
         .from('behaviors')
@@ -21,10 +30,12 @@ export default async function BehaviorPage() {
         .order('behavior_name', { ascending: true })
         .returns<Behavior[]>()
 
-    // Fetch recent check-ins (last 30 days) in local timezone
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo)
+    // Fetch recent check-ins (last 30 days) in user's timezone
+    const userDateStr = getDateInTimezone(timezone)
+    const userDate = new Date(userDateStr + 'T12:00:00')
+    const thirtyDaysAgo = new Date(userDate)
+    thirtyDaysAgo.setDate(userDate.getDate() - 30)
+    const thirtyDaysAgoStr = getDateInTimezone(timezone, thirtyDaysAgo)
 
     const { data: checkins } = await supabase
         .from('behavior_checkins')

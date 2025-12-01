@@ -203,6 +203,9 @@ export interface UserProfile {
     intake_completed: boolean
     intake_completed_at: string | null
     
+    // Timezone
+    timezone: string // IANA timezone identifier (e.g., 'America/New_York')
+    
     created_at: string
     updated_at: string
 }

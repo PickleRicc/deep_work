@@ -16,7 +16,7 @@ import ProductivityScore from './productivity-score'
 import WorkSatisfactionChart from './work-satisfaction-chart'
 import TagPerformanceTable from './tag-performance-table'
 import { BarChart3 } from 'lucide-react'
-import { getLocalDateString } from '@/lib/utils/date'
+import { getDateInTimezone } from '@/lib/utils/date'
 
 export default async function AnalyticsPage() {
     const supabase = await createClient()
@@ -27,11 +27,21 @@ export default async function AnalyticsPage() {
         return null
     }
 
-    // Calculate date ranges in local timezone
-    const now = new Date()
-    const thirtyDaysAgo = new Date(now)
-    thirtyDaysAgo.setDate(now.getDate() - 30)
-    const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo)
+    // Get user's timezone from profile
+    const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single()
+
+    const timezone = profileData?.timezone || 'America/New_York'
+
+    // Calculate date ranges in user's timezone
+    const userDateStr = getDateInTimezone(timezone)
+    const userDate = new Date(userDateStr + 'T12:00:00')
+    const thirtyDaysAgo = new Date(userDate)
+    thirtyDaysAgo.setDate(userDate.getDate() - 30)
+    const thirtyDaysAgoStr = getDateInTimezone(timezone, thirtyDaysAgo)
 
     // Fetch all time blocks for last 30 days
     const { data: allBlocks } = await supabase

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { TimeBlock, Task, UserWorkHours, QuarterlyPlan, WeeklyPlan, Project } from '@/lib/types/database'
 import WorkTabs from './work-tabs'
-import { getLocalDateString } from '@/lib/utils/date'
+import { getDateInTimezone } from '@/lib/utils/date'
 import { workQuotes } from '@/components/page-quotes'
 
 export default async function WorkPage({
@@ -18,8 +18,17 @@ export default async function WorkPage({
         return null
     }
 
-    // Use provided date or default to today (in user's local timezone)
-    const selectedDate = params.date || getLocalDateString()
+    // Get user's timezone from profile
+    const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .single()
+
+    const timezone = profileData?.timezone || 'America/New_York'
+
+    // Use provided date or default to today (in user's timezone)
+    const selectedDate = params.date || getDateInTimezone(timezone)
 
     // Fetch time blocks for selected date (Block tab)
     const { data: timeBlocks } = await supabase
@@ -76,19 +85,19 @@ export default async function WorkPage({
         .limit(5)
         .returns<Task[]>()
 
-    // Calculate current quarter and week for Plan tab
-    const now = new Date()
-    const month = now.getMonth()
-    const year = now.getFullYear()
+    // Calculate current quarter and week for Plan tab using user's timezone
+    const userDateStr = getDateInTimezone(timezone)
+    const userDate = new Date(userDateStr + 'T12:00:00')
+    const month = userDate.getMonth()
+    const year = userDate.getFullYear()
     const quarter = Math.floor(month / 3) + 1
     const currentQuarter = `${year}-Q${quarter}`
 
-    // Calculate week start (Sunday of current week) in local timezone
-    const today = new Date()
-    const dayOfWeek = today.getDay()
-    const weekStart = new Date(today)
-    weekStart.setDate(today.getDate() - dayOfWeek)
-    const weekStartString = getLocalDateString(weekStart)
+    // Calculate week start (Sunday of current week) in user's timezone
+    const dayOfWeek = userDate.getDay()
+    const weekStart = new Date(userDate)
+    weekStart.setDate(userDate.getDate() - dayOfWeek)
+    const weekStartString = getDateInTimezone(timezone, weekStart)
 
     // Fetch quarterly plan
     const { data: quarterlyPlans } = await supabase
